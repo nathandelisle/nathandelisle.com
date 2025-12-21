@@ -34,21 +34,6 @@ function App() {
     { title: "In Solidarity with Library Genesis and Sci-Hub", url: "https://custodians.online/" },
     { title: "Sticks — George Saunders", url: "https://www.unm.edu/~gmartin/535/Sticks.htm" },
     { title: "The Street Window — Franz Kafka", url: "http://franzkafkastories.com/shortStories.php?story_id=kafka_the_street_window" },
-    { title: "Bullet in the Brain — Tobias Wolff", url: "https://www.newyorker.com/magazine/1995/09/25/bullet-in-the-brain" },
-  ];
-
-  const work = [
-    { 
-      title: "Situational Awareness: A One Year Retrospective", 
-      links: [{ label: "LessWrong", url: "https://www.lesswrong.com/posts/EGGruXRxGQx6RQt8x/situational-awareness-a-one-year-retrospective" }]
-    },
-    { 
-      title: "MCP Code-Exec Server", 
-      links: [
-        { label: "GitHub", url: "https://github.com/nathandelisle/mcp-codeexec-server" },
-        { label: "Writeup", url: "https://docs.google.com/document/d/1nKo871F4Ynhc57wJuLon5v-vLyIYZHKzbcEJo4E5Ri4/edit?tab=t.0" }
-      ]
-    },
   ];
 
   const styles = {
@@ -107,18 +92,6 @@ function App() {
       color: '#ffffff',
       marginBottom: '1rem',
       marginTop: '3rem',
-    },
-    workItem: {
-      fontSize: '15px',
-      marginBottom: '0.75rem',
-    },
-    workTitle: {
-      color: '#aaaaaa',
-    },
-    workLink: {
-      color: '#666666',
-      textDecoration: 'none',
-      marginLeft: '0.25rem',
     },
     readingLink: {
       color: '#888888',
@@ -205,33 +178,9 @@ function App() {
           </div>
         </header>
 
-        {/* Selected Work */}
+        {/* Readings */}
         <section>
-          <h2 style={styles.sectionHeader}>Selected Work</h2>
-          <div>
-            {work.map((item, i) => (
-              <div key={i} style={styles.workItem}>
-                <span style={styles.workTitle}>{item.title}</span>
-                {' '}
-                {item.links.map((link, j) => (
-                  <a 
-                    key={j}
-                    href={link.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    style={styles.workLink}
-                  >
-                    [{link.label}]
-                  </a>
-                ))}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Selected Readings */}
-        <section>
-          <h2 style={styles.sectionHeader}>Selected Readings</h2>
+          <h2 style={styles.sectionHeader}>Readings</h2>
           <div>
             {readings.map((item, i) => (
               <a 
