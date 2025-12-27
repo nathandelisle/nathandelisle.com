@@ -22,7 +22,7 @@ function App() {
       'master': '#ff8c00',
       'grandmaster': '#ff0000',
     };
-    return colors[rank?.toLowerCase()] || '#888';
+    return colors[rank?.toLowerCase()] || '#666';
   };
 
   const formatRank = (rank) => {
@@ -39,8 +39,8 @@ function App() {
   const styles = {
     page: {
       minHeight: '100vh',
-      backgroundColor: '#0d0d0d',
-      color: '#e0e0e0',
+      backgroundColor: '#ffffff',
+      color: '#1a1a1a',
       fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
     },
     main: {
@@ -51,12 +51,12 @@ function App() {
     name: {
       fontSize: '2.25rem',
       fontWeight: 600,
-      color: '#ffffff',
+      color: '#000000',
       letterSpacing: '-0.02em',
       marginBottom: '1.5rem',
     },
     bio: {
-      color: '#aaaaaa',
+      color: '#444444',
       lineHeight: 1.7,
       fontSize: '15px',
     },
@@ -64,9 +64,9 @@ function App() {
       marginBottom: '1rem',
     },
     link: {
-      color: '#cccccc',
+      color: '#1a1a1a',
       textDecoration: 'underline',
-      textDecorationColor: '#444444',
+      textDecorationColor: '#cccccc',
       textUnderlineOffset: '2px',
     },
     linksRow: {
@@ -76,27 +76,27 @@ function App() {
       gap: '0.5rem',
       marginTop: '1.5rem',
       fontSize: '14px',
-      color: '#888888',
+      color: '#666666',
     },
     dot: {
-      color: '#444444',
+      color: '#cccccc',
       margin: '0 0.25rem',
     },
     socialLink: {
-      color: '#888888',
+      color: '#666666',
       textDecoration: 'none',
     },
     sectionHeader: {
       fontSize: '1.125rem',
       fontWeight: 500,
-      color: '#ffffff',
+      color: '#000000',
       marginBottom: '1rem',
       marginTop: '3rem',
     },
     readingLink: {
-      color: '#888888',
+      color: '#666666',
       textDecoration: 'underline',
-      textDecorationColor: '#333333',
+      textDecorationColor: '#dddddd',
       textUnderlineOffset: '2px',
       fontSize: '15px',
       display: 'block',
@@ -107,12 +107,8 @@ function App() {
   return (
     <div style={styles.page}>
       <main style={styles.main}>
-        
-        {/* Name */}
         <header>
           <h1 style={styles.name}>Nathan Delisle</h1>
-
-          {/* Bio */}
           <div style={styles.bio}>
             <p style={styles.bioP}>
               I am a third year at the University of Chicago studying Computer Science and Statistics.
@@ -139,63 +135,32 @@ function App() {
               I am most interested in deep causal explanations for emergent phenomena, especially in AI, often using mathematics.
             </p>
           </div>
-
-          {/* Links row: Email · Codeforces · X · GitHub · LessWrong */}
           <div style={styles.linksRow}>
-            <a href="mailto:ndelisle@uchicago.edu" style={styles.socialLink}>
-              Email
-            </a>
+            <a href="mailto:ndelisle@uchicago.edu" style={styles.socialLink}>Email</a>
             <span style={styles.dot}>·</span>
             {cfData ? (
-              <a 
-                href="https://codeforces.com/profile/ndelisle" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                style={styles.socialLink}
-              >
-                Codeforces{' '}
-                <span style={{ color: getRankColor(cfData.rank) }}>
-                  ({cfData.rating}, {formatRank(cfData.rank)})
-                </span>
+              <a href="https://codeforces.com/profile/ndelisle" target="_blank" rel="noopener noreferrer" style={styles.socialLink}>
+                Codeforces <span style={{ color: getRankColor(cfData.rank) }}>({cfData.rating}, {formatRank(cfData.rank)})</span>
               </a>
             ) : (
-              <a href="https://codeforces.com/profile/ndelisle" target="_blank" rel="noopener noreferrer" style={styles.socialLink}>
-                Codeforces
-              </a>
+              <a href="https://codeforces.com/profile/ndelisle" target="_blank" rel="noopener noreferrer" style={styles.socialLink}>Codeforces</a>
             )}
             <span style={styles.dot}>·</span>
-            <a href="https://x.com/delisl3" target="_blank" rel="noopener noreferrer" style={styles.socialLink}>
-              X
-            </a>
+            <a href="https://x.com/delisl3" target="_blank" rel="noopener noreferrer" style={styles.socialLink}>X</a>
             <span style={styles.dot}>·</span>
-            <a href="https://github.com/nathandelisle" target="_blank" rel="noopener noreferrer" style={styles.socialLink}>
-              GitHub
-            </a>
+            <a href="https://github.com/nathandelisle" target="_blank" rel="noopener noreferrer" style={styles.socialLink}>GitHub</a>
             <span style={styles.dot}>·</span>
-            <a href="https://www.lesswrong.com/users/nathan-delisle" target="_blank" rel="noopener noreferrer" style={styles.socialLink}>
-              LessWrong
-            </a>
+            <a href="https://www.lesswrong.com/users/nathan-delisle" target="_blank" rel="noopener noreferrer" style={styles.socialLink}>LessWrong</a>
           </div>
         </header>
-
-        {/* Readings */}
         <section>
           <h2 style={styles.sectionHeader}>Readings</h2>
           <div>
             {readings.map((item, i) => (
-              <a 
-                key={i}
-                href={item.url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                style={styles.readingLink}
-              >
-                {item.title}
-              </a>
+              <a key={i} href={item.url} target="_blank" rel="noopener noreferrer" style={styles.readingLink}>{item.title}</a>
             ))}
           </div>
         </section>
-
       </main>
     </div>
   );
