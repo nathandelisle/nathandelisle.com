@@ -30,22 +30,28 @@ async function getPlayerData(gameName, tagLine, type) {
   );
 
   const isTFT = type === 'tft';
+  const fourDaysAgo = Math.floor(Date.now() / 1000) - 4 * 24 * 60 * 60;
   const [ranked, matchIds] = await Promise.all([
     isTFT
       ? riot(`${NA1}/tft/league/v1/entries/by-summoner/${summoner.id}`)
       : riot(`${NA1}/lol/league/v4/entries/by-summoner/${summoner.id}`),
     isTFT
-      ? riot(`${AMERICAS}/tft/match/v1/matches/by-puuid/${account.puuid}/ids?count=10`)
-      : riot(`${AMERICAS}/lol/match/v5/matches/by-puuid/${account.puuid}/ids?count=10`),
+      ? riot(`${AMERICAS}/tft/match/v1/matches/by-puuid/${account.puuid}/ids?startTime=${fourDaysAgo}&count=100`)
+      : riot(`${AMERICAS}/lol/match/v5/matches/by-puuid/${account.puuid}/ids?startTime=${fourDaysAgo}&count=100`),
   ]);
 
-  const matches = await Promise.all(
-    matchIds.slice(0, 7).map((id) =>
-      isTFT
-        ? riot(`${AMERICAS}/tft/match/v1/matches/${id}`)
-        : riot(`${AMERICAS}/lol/match/v5/matches/${id}`)
-    )
-  );
+  // Fetch match details in batches of 10 to respect rate limits
+  const matches = [];
+  for (let i = 0; i < matchIds.length; i += 10) {
+    const batch = await Promise.all(
+      matchIds.slice(i, i + 10).map((id) =>
+        isTFT
+          ? riot(`${AMERICAS}/tft/match/v1/matches/${id}`)
+          : riot(`${AMERICAS}/lol/match/v5/matches/${id}`)
+      )
+    );
+    matches.push(...batch);
+  }
 
   const queueType = isTFT ? 'RANKED_TFT' : 'RANKED_SOLO_5x5';
   const rankedEntry = ranked.find((e) => e.queueType === queueType) || null;
@@ -96,7 +102,7 @@ async function getPlayerData(gameName, tagLine, type) {
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=300');
+  res.setHeader('Cache-Control', 'no-cache');
 
   if (!RIOT_API_KEY) {
     return res.status(500).json({ error: 'RIOT_API_KEY not configured' });

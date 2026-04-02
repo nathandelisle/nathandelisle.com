@@ -98,8 +98,8 @@ function Race() {
 
   useEffect(fetchData, []);
 
-  if (loading) return <LoadingScreen />;
-  if (error) return <ErrorScreen error={error} onRetry={fetchData} />;
+  if (loading && !data) return <LoadingScreen />;
+  if (error && !data) return <ErrorScreen error={error} onRetry={fetchData} />;
   if (!data) return null;
 
   const { nathan, isaac, ddVersion } = data;
@@ -176,10 +176,10 @@ function Race() {
         </div>
 
         <div style={s.footer}>
-          <button onClick={fetchData} style={s.refreshBtn}>
-            Refresh
+          <button onClick={fetchData} disabled={loading} style={s.refreshBtn}>
+            {loading ? 'Refreshing...' : 'Refresh from Riot API'}
           </button>
-          <span style={s.footerText}>Data from Riot Games API — cached 2 min</span>
+          <span style={s.footerText}>Showing all games from the last 4 days</span>
         </div>
       </div>
     </div>
@@ -312,7 +312,7 @@ function MatchHistory({ player, ddVersion }) {
 
   return (
     <div style={s.card}>
-      <h3 style={s.cardTitle}>Recent Games</h3>
+      <h3 style={s.cardTitle}>Games (Last 4 Days)</h3>
       <div style={s.matchList}>
         {recentMatches.map((m, i) =>
           isTFT ? (
