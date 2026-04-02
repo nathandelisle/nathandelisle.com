@@ -308,6 +308,7 @@ function estimateLP(player) {
 }
 
 function LPGraph({ nathan, isaac, since }) {
+  const [hover, setHover] = useState(null);
   const nPts = estimateLP(nathan);
   const iPts = estimateLP(isaac);
   if (nPts.length < 2 && iPts.length < 2) return null;
@@ -318,15 +319,16 @@ function LPGraph({ nathan, isaac, since }) {
   const tMin = since;
   const tMax = Date.now();
 
-  const W = 680, H = 140, PAD_L = 35, PAD_R = 10, PAD_T = 10, PAD_B = 22;
+  const W = 680, H = 160, PAD_L = 35, PAD_R = 10, PAD_T = 10, PAD_B = 22;
   const gW = W - PAD_L - PAD_R, gH = H - PAD_T - PAD_B;
 
   const toX = t => PAD_L + ((t - tMin) / (tMax - tMin)) * gW;
   const toY = lp => PAD_T + gH - ((lp - minLP) / (maxLP - minLP)) * gH;
+  const fromX = x => tMin + ((x - PAD_L) / gW) * (tMax - tMin);
 
   const makePath = (pts) => pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(p.t).toFixed(1)},${toY(p.lp).toFixed(1)}`).join(' ');
 
-  // Y-axis labels: show a few LP tick marks
+  // Y-axis labels
   const lpRange = maxLP - minLP;
   const step = lpRange > 100 ? 50 : lpRange > 40 ? 20 : 10;
   const ticks = [];
@@ -334,7 +336,15 @@ function LPGraph({ nathan, isaac, since }) {
     ticks.push(v);
   }
 
-  // Rank label from absolute LP
+  // X-axis date labels — one per day
+  const dayMs = 86400000;
+  const startDay = new Date(tMin);
+  startDay.setHours(0, 0, 0, 0);
+  const xTicks = [];
+  for (let d = startDay.getTime() + dayMs; d < tMax; d += dayMs) {
+    xTicks.push(d);
+  }
+
   const rankLabel = (absLP) => {
     if (absLP >= 2800) return 'Master';
     const t = Math.floor(absLP / 400);
@@ -344,25 +354,88 @@ function LPGraph({ nathan, isaac, since }) {
     return (tierNames[t] || '?') + divNames[d];
   };
 
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const dayLabel = (ts) => {
+    const d = new Date(ts);
+    return months[d.getMonth()] + ' ' + d.getDate();
+  };
+
+  // Interpolate LP at a given timestamp from a point array
+  const lpAt = (pts, t) => {
+    if (pts.length === 0) return null;
+    if (t <= pts[0].t) return pts[0].lp;
+    if (t >= pts[pts.length - 1].t) return pts[pts.length - 1].lp;
+    for (let i = 1; i < pts.length; i++) {
+      if (t <= pts[i].t) {
+        const frac = (t - pts[i - 1].t) / (pts[i].t - pts[i - 1].t);
+        return Math.round(pts[i - 1].lp + frac * (pts[i].lp - pts[i - 1].lp));
+      }
+    }
+    return pts[pts.length - 1].lp;
+  };
+
+  const handleMouse = (e) => {
+    const svg = e.currentTarget;
+    const rect = svg.getBoundingClientRect();
+    const svgX = ((e.clientX - rect.left) / rect.width) * W;
+    if (svgX < PAD_L || svgX > W - PAD_R) { setHover(null); return; }
+    const t = fromX(svgX);
+    const nLP = nPts.length > 1 ? lpAt(nPts, t) : null;
+    const iLP = iPts.length > 1 ? lpAt(iPts, t) : null;
+    setHover({ x: svgX, t, nLP, iLP });
+  };
+
   return (
     <div style={{ background: '#161b22', border: '1px solid #21262d', borderRadius: 8, padding: '12px 8px 8px', marginBottom: 16 }}>
       <div style={{ fontSize: 11, color: '#484f58', marginBottom: 4, paddingLeft: PAD_L }}>Estimated LP</div>
-      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
-        {/* Grid lines */}
-        {ticks.map(v => (
-          <g key={v}>
-            <line x1={PAD_L} x2={W - PAD_R} y1={toY(v)} y2={toY(v)} stroke="#21262d" strokeWidth="1" />
-            <text x={PAD_L - 4} y={toY(v) + 3} fill="#30363d" fontSize="9" textAnchor="end" fontFamily="monospace">{rankLabel(v)}</text>
-          </g>
-        ))}
-        {/* Nathan line */}
-        {nPts.length > 1 && <path d={makePath(nPts)} fill="none" stroke="#576BCE" strokeWidth="2" strokeLinejoin="round" />}
-        {/* Isaac line */}
-        {iPts.length > 1 && <path d={makePath(iPts)} fill="none" stroke="#3fb950" strokeWidth="2" strokeLinejoin="round" />}
-        {/* Dots at current */}
-        {nPts.length > 0 && <circle cx={toX(nPts[nPts.length-1].t)} cy={toY(nPts[nPts.length-1].lp)} r="3" fill="#576BCE" />}
-        {iPts.length > 0 && <circle cx={toX(iPts[iPts.length-1].t)} cy={toY(iPts[iPts.length-1].lp)} r="3" fill="#3fb950" />}
-      </svg>
+      <div style={{ position: 'relative' }}>
+        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block', cursor: 'crosshair' }}
+          onMouseMove={handleMouse} onMouseLeave={() => setHover(null)}>
+          {/* Grid lines */}
+          {ticks.map(v => (
+            <g key={v}>
+              <line x1={PAD_L} x2={W - PAD_R} y1={toY(v)} y2={toY(v)} stroke="#21262d" strokeWidth="1" />
+              <text x={PAD_L - 4} y={toY(v) + 3} fill="#30363d" fontSize="9" textAnchor="end" fontFamily="monospace">{rankLabel(v)}</text>
+            </g>
+          ))}
+          {/* X-axis date labels */}
+          {xTicks.map(t => (
+            <g key={t}>
+              <line x1={toX(t)} x2={toX(t)} y1={PAD_T} y2={PAD_T + gH} stroke="#21262d" strokeWidth="1" strokeDasharray="3,3" />
+              <text x={toX(t)} y={H - 4} fill="#30363d" fontSize="9" textAnchor="middle" fontFamily="monospace">{dayLabel(t)}</text>
+            </g>
+          ))}
+          {/* Nathan line */}
+          {nPts.length > 1 && <path d={makePath(nPts)} fill="none" stroke="#576BCE" strokeWidth="2" strokeLinejoin="round" />}
+          {/* Isaac line */}
+          {iPts.length > 1 && <path d={makePath(iPts)} fill="none" stroke="#3fb950" strokeWidth="2" strokeLinejoin="round" />}
+          {/* Dots at current */}
+          {nPts.length > 0 && <circle cx={toX(nPts[nPts.length-1].t)} cy={toY(nPts[nPts.length-1].lp)} r="3" fill="#576BCE" />}
+          {iPts.length > 0 && <circle cx={toX(iPts[iPts.length-1].t)} cy={toY(iPts[iPts.length-1].lp)} r="3" fill="#3fb950" />}
+          {/* Hover crosshair + dots */}
+          {hover && (
+            <>
+              <line x1={hover.x} x2={hover.x} y1={PAD_T} y2={PAD_T + gH} stroke="#484f58" strokeWidth="1" strokeDasharray="2,2" />
+              {hover.nLP != null && <circle cx={hover.x} cy={toY(hover.nLP)} r="4" fill="#576BCE" stroke="#0d1117" strokeWidth="1.5" />}
+              {hover.iLP != null && <circle cx={hover.x} cy={toY(hover.iLP)} r="4" fill="#3fb950" stroke="#0d1117" strokeWidth="1.5" />}
+            </>
+          )}
+        </svg>
+        {/* Hover tooltip */}
+        {hover && (hover.nLP != null || hover.iLP != null) && (
+          <div style={{
+            position: 'absolute', top: 6,
+            left: hover.x > W / 2 ? undefined : `${(hover.x / W) * 100}%`,
+            right: hover.x > W / 2 ? `${((W - hover.x) / W) * 100}%` : undefined,
+            background: '#0d1117', border: '1px solid #30363d', borderRadius: 6,
+            padding: '5px 8px', fontSize: 11, pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 10,
+          }}>
+            <div style={{ color: '#484f58', marginBottom: 3 }}>{dayLabel(hover.t)} {new Date(hover.t).getHours()}:{String(new Date(hover.t).getMinutes()).padStart(2, '0')}</div>
+            {hover.nLP != null && <div style={{ color: '#576BCE' }}>{nathan.gameName}: {rankLabel(hover.nLP)} ({hover.nLP % 100} LP)</div>}
+            {hover.iLP != null && <div style={{ color: '#3fb950' }}>{isaac.gameName}: {rankLabel(hover.iLP)} ({hover.iLP % 100} LP)</div>}
+          </div>
+        )}
+      </div>
       <div style={{ display: 'flex', gap: 16, justifyContent: 'center', fontSize: 11, marginTop: 4 }}>
         <span><span style={{ color: '#576BCE' }}>—</span> <span style={{ color: '#484f58' }}>{nathan.gameName}</span></span>
         <span><span style={{ color: '#3fb950' }}>—</span> <span style={{ color: '#484f58' }}>{isaac.gameName}</span></span>
