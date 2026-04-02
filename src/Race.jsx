@@ -86,7 +86,7 @@ function Race() {
   const fetchData = () => {
     setLoading(true);
     setError(null);
-    fetch('/api/race')
+    fetch('https://race-api.nathandelisle.workers.dev')
       .then((r) => r.json())
       .then((d) => {
         if (d.error) setError(d.error);
