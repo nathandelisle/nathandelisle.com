@@ -37,11 +37,13 @@ async function getPlayerData(gameName, tagLine, type, apiKey) {
       : riot(`${AMERICAS}/lol/match/v5/matches/by-puuid/${account.puuid}/ids?startTime=${fourDaysAgo}&count=100`, apiKey),
   ]);
 
-  // Fetch all match details in batches of 10
+  // Fetch match details in batches of 12, with 1.2s delay between batches
+  // to stay under the 20 req/sec rate limit
   const matches = [];
-  for (let i = 0; i < matchIds.length; i += 10) {
+  for (let i = 0; i < matchIds.length; i += 12) {
+    if (i > 0) await new Promise(r => setTimeout(r, 1200));
     const batch = await Promise.all(
-      matchIds.slice(i, i + 10).map((id) =>
+      matchIds.slice(i, i + 12).map((id) =>
         isTFT
           ? riot(`${AMERICAS}/tft/match/v1/matches/${id}`, apiKey)
           : riot(`${AMERICAS}/lol/match/v5/matches/${id}`, apiKey)
@@ -122,10 +124,10 @@ export default {
       const versionsRes = await fetch('https://ddragon.leagueoflegends.com/api/versions.json');
       const versions = await versionsRes.json();
 
-      const [nathan, isaac] = await Promise.all([
-        getPlayerData('who am i', 'idrk', 'league', env.RIOT_API_KEY),
-        getPlayerData('Sotatsu', 'sheep', 'tft', env.RIOT_API_KEY),
-      ]);
+      // Fetch sequentially so requests don't overlap and blow the rate limit
+      const nathan = await getPlayerData('who am i', 'idrk', 'league', env.RIOT_API_KEY);
+      await new Promise(r => setTimeout(r, 1200));
+      const isaac = await getPlayerData('Sotatsu', 'sheep', 'tft', env.RIOT_API_KEY);
 
       const sinceEpoch = Math.floor(Date.now() / 1000) - 4 * 24 * 60 * 60;
       return new Response(JSON.stringify({ nathan, isaac, ddVersion: versions[0], since: sinceEpoch * 1000 }), {
