@@ -226,6 +226,7 @@ function LRow({ m, v }) {
         <span style={{ color: '#8b949e', fontSize: 12 }}>({kda})</span>
         {m.mvp && <span style={{ color: '#e3b341', fontSize: 11, fontWeight: 600 }}>ACE</span>}
         <span style={{ marginLeft: 'auto', fontWeight: 600, color: m.win ? '#3fb950' : '#f85149' }}>{m.win ? 'W' : 'L'}</span>
+        <span style={{ fontFamily: 'monospace', fontSize: 11, color: m.win ? '#3fb950' : '#f85149' }}>{m.win ? '+22' : '-18'}</span>
       </div>
       <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#8b949e', marginTop: 4, paddingLeft: 36 }}>
         <span>{m.csMin} cs/m</span>
@@ -243,12 +244,14 @@ function LRow({ m, v }) {
 function TRow({ m }) {
   const c = m.placement <= 1 ? '#e3b341' : m.placement <= 4 ? '#3fb950' : '#f85149';
   const unitStr = (m.units || []).map(u => u.tier > 1 ? `${u.name}★${u.tier}` : u.name).join(', ');
+  const lpDelta = m.placement <= 1 ? 38 : m.placement <= 2 ? 28 : m.placement <= 3 ? 18 : m.placement <= 4 ? 8 : m.placement <= 5 ? -8 : m.placement <= 6 ? -18 : m.placement <= 7 ? -28 : -38;
   return (
     <div style={{ padding: '7px 0', borderBottom: '1px solid #21262d' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
         <span style={{ color: c, fontWeight: 700, fontFamily: 'monospace', width: 28, textAlign: 'center' }}>#{m.placement}</span>
         <span style={{ color: '#c9d1d9' }}>Lv{m.level}</span>
         <span style={{ color: '#e6edf3', fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.traits.join(', ')}</span>
+        <span style={{ fontFamily: 'monospace', fontSize: 11, color: lpDelta >= 0 ? '#3fb950' : '#f85149' }}>{lpDelta > 0 ? '+' : ''}{lpDelta}</span>
         <span style={{ color: '#6e7681', fontSize: 12 }}>{timeAgo(m.gameDate)}</span>
       </div>
       <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#8b949e', marginTop: 4, paddingLeft: 36 }}>
