@@ -30,24 +30,23 @@ async function getPlayerData(gameName, tagLine, type, apiKey) {
 
   const [ranked, matchIds] = await Promise.all([
     isTFT
-      ? riot(`${NA1}/tft/league/v1/entries/by-summoner/${summoner.id}`, apiKey)
-      : riot(`${NA1}/lol/league/v4/entries/by-summoner/${summoner.id}`, apiKey),
+      ? riot(`${NA1}/tft/league/v1/by-puuid/${account.puuid}`, apiKey)
+      : riot(`${NA1}/lol/league/v4/entries/by-puuid/${account.puuid}`, apiKey),
     isTFT
       ? riot(`${AMERICAS}/tft/match/v1/matches/by-puuid/${account.puuid}/ids?startTime=${fourDaysAgo}&count=100`, apiKey)
       : riot(`${AMERICAS}/lol/match/v5/matches/by-puuid/${account.puuid}/ids?startTime=${fourDaysAgo}&count=100`, apiKey),
   ]);
 
-  const matches = [];
-  for (let i = 0; i < matchIds.length; i += 10) {
-    const batch = await Promise.all(
-      matchIds.slice(i, i + 10).map((id) =>
-        isTFT
-          ? riot(`${AMERICAS}/tft/match/v1/matches/${id}`, apiKey)
-          : riot(`${AMERICAS}/lol/match/v5/matches/${id}`, apiKey)
-      )
-    );
-    matches.push(...batch);
-  }
+  // Fetch details for last 5 games only (saves rate limit budget)
+  // matchIds.length still tells us total games in the window
+  const detailIds = matchIds.slice(0, 5);
+  const matches = await Promise.all(
+    detailIds.map((id) =>
+      isTFT
+        ? riot(`${AMERICAS}/tft/match/v1/matches/${id}`, apiKey)
+        : riot(`${AMERICAS}/lol/match/v5/matches/${id}`, apiKey)
+    )
+  );
 
   const queueType = isTFT ? 'RANKED_TFT' : 'RANKED_SOLO_5x5';
   const rankedEntry = ranked.find((e) => e.queueType === queueType) || null;
@@ -92,6 +91,7 @@ async function getPlayerData(gameName, tagLine, type, apiKey) {
     summonerLevel: summoner.summonerLevel,
     ranked: rankedEntry,
     recentMatches,
+    totalGames4d: matchIds.length,
     type,
   };
 }
