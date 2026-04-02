@@ -17,3 +17,38 @@ body {
 a {
   transition: color 0.15s ease;
 }
+
+a:hover {
+  opacity: 0.7;
+}
+
+.race-loader {
+  width: 180px;
+  height: 4px;
+  background: #e8e8e8;
+  border-radius: 2px;
+  margin: 0 auto;
+  overflow: hidden;
+  position: relative;
+}
+.race-loader::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -40%;
+  width: 40%;
+  height: 100%;
+  background: #576BCE;
+  border-radius: 2px;
+  animation: race-slide 1.2s ease-in-out infinite;
+}
+@keyframes race-slide {
+  0% { left: -40%; }
+  100% { left: 100%; }
+}
+
+@media (max-width: 640px) {
+  .race-columns {
+    flex-direction: column;
+  }
+}

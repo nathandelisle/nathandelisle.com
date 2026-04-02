@@ -151,6 +151,8 @@ function App() {
             <a href="https://github.com/nathandelisle" target="_blank" rel="noopener noreferrer" style={styles.socialLink}>GitHub</a>
             <span style={styles.dot}>·</span>
             <a href="https://www.lesswrong.com/users/nathan-delisle" target="_blank" rel="noopener noreferrer" style={styles.socialLink}>LessWrong</a>
+            <span style={styles.dot}>·</span>
+            <a href="/race" style={styles.socialLink}>Race to Master</a>
           </div>
         </header>
         <section>
