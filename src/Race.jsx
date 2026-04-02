@@ -21,12 +21,23 @@ function pct(tier, rank, lp) {
 
 function timeAgo(ts) {
   const s = Math.floor((Date.now() - ts) / 1000);
-  if (s < 60) return 'now';
+  if (s < 60) return 'just now';
   const m = Math.floor(s / 60);
-  if (m < 60) return m + 'm';
+  if (m < 60) return m + 'm ago';
   const h = Math.floor(m / 60);
-  if (h < 24) return h + 'h';
-  return Math.floor(h / 24) + 'd';
+  if (h < 24) return h + 'h ago';
+  const d = Math.floor(h / 24);
+  return d + 'd ago';
+}
+
+function sinceLabel(ts) {
+  const d = new Date(ts);
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return months[d.getMonth()] + ' ' + d.getDate();
+}
+
+function daysSince(ts) {
+  return Math.round((Date.now() - ts) / (1000 * 60 * 60 * 24));
 }
 
 const Q = { 420: 'Solo', 440: 'Flex', 400: 'Norms', 430: 'Norms', 450: 'ARAM', 1700: 'Arena', 1100: 'Ranked', 1090: 'Normal', 1130: 'Hyper Roll', 1160: 'Double Up' };
@@ -52,13 +63,14 @@ function Race() {
   if (error && !data) return <Err error={error} retry={fetchData} />;
   if (!data) return null;
 
-  const { nathan, isaac, ddVersion } = data;
+  const { nathan, isaac, ddVersion, since } = data;
   const nR = nathan.ranked, iR = isaac.ranked;
   const nLP = nR ? lpToMaster(nR.tier, nR.rank, nR.leaguePoints) : null;
   const iLP = iR ? lpToMaster(iR.tier, iR.rank, iR.leaguePoints) : null;
   const nPct = nR ? pct(nR.tier, nR.rank, nR.leaguePoints) : 0;
   const iPct = iR ? pct(iR.tier, iR.rank, iR.leaguePoints) : 0;
   const diff = nLP != null && iLP != null ? nLP - iLP : 0;
+  const days = daysSince(since);
 
   return (
     <div style={{ minHeight: '100vh', background: '#0d1117', color: '#c9d1d9', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif' }}>
@@ -67,7 +79,7 @@ function Race() {
         <div style={{ marginBottom: '2rem' }}>
           <a href="/" style={{ color: '#484f58', fontSize: 12, textDecoration: 'none' }}>nathandelisle.com</a>
           <h1 style={{ fontSize: 20, fontWeight: 600, color: '#e6edf3', margin: '0.75rem 0 0.25rem' }}>Race to Master</h1>
-          <p style={{ color: '#484f58', fontSize: 13, margin: 0 }}>League vs TFT</p>
+          <p style={{ color: '#484f58', fontSize: 13, margin: 0 }}>League vs TFT — since {sinceLabel(since)} ({days}d window)</p>
         </div>
 
         {/* Progress */}
@@ -83,13 +95,13 @@ function Race() {
 
         {/* Two columns */}
         <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
-          <Card player={nathan} ddVersion={ddVersion} />
-          <Card player={isaac} ddVersion={ddVersion} />
+          <Card player={nathan} ddVersion={ddVersion} days={days} />
+          <Card player={isaac} ddVersion={ddVersion} days={days} />
         </div>
 
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          <Games player={nathan} ddVersion={ddVersion} />
-          <Games player={isaac} ddVersion={ddVersion} />
+          <Games player={nathan} ddVersion={ddVersion} since={since} days={days} />
+          <Games player={isaac} ddVersion={ddVersion} since={since} days={days} />
         </div>
 
         <div style={{ textAlign: 'center', marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid #21262d' }}>
@@ -99,7 +111,7 @@ function Race() {
           }}>
             {loading ? 'Loading...' : 'Refresh'}
           </button>
-          <p style={{ color: '#30363d', fontSize: 11, marginTop: 8 }}>last 4 days of games</p>
+          <p style={{ color: '#30363d', fontSize: 11, marginTop: 8 }}>since {sinceLabel(since)}</p>
         </div>
       </div>
     </div>
@@ -123,7 +135,7 @@ function Bar({ name, pct, lp, rank, ahead }) {
   );
 }
 
-function Card({ player, ddVersion }) {
+function Card({ player, ddVersion, days }) {
   const r = player.ranked;
   const isTFT = player.type === 'tft';
   const icon = `https://ddragon.leagueoflegends.com/cdn/${ddVersion}/img/profileicon/${player.profileIconId}.png`;
@@ -132,16 +144,18 @@ function Card({ player, ddVersion }) {
   const total = wins + losses;
   const wr = total > 0 ? ((wins / total) * 100).toFixed(1) : '0';
 
+  // Rolling window win rate from match details
   const ms = player.recentMatches;
-  let stat;
+  let recentW, recentL;
   if (isTFT) {
-    const avg = ms.length > 0 ? (ms.reduce((s, m) => s + m.placement, 0) / ms.length).toFixed(1) : '-';
-    stat = { label: 'Avg Place', value: avg };
+    recentW = ms.filter(m => m.placement <= 4).length;
+    recentL = ms.filter(m => m.placement > 4).length;
   } else {
-    const pool = ms.filter(m => m.queueId === 420).length > 0 ? ms.filter(m => m.queueId === 420) : ms;
-    const k = pool.reduce((s, m) => s + m.kills, 0), d = pool.reduce((s, m) => s + m.deaths, 0), a = pool.reduce((s, m) => s + m.assists, 0);
-    stat = { label: 'KDA', value: d > 0 ? ((k + a) / d).toFixed(2) : '-' };
+    recentW = ms.filter(m => m.win).length;
+    recentL = ms.filter(m => !m.win).length;
   }
+  const recentTotal = recentW + recentL;
+  const recentWR = recentTotal > 0 ? ((recentW / recentTotal) * 100).toFixed(0) : '—';
 
   const rankStr = r ? `${r.tier.charAt(0) + r.tier.slice(1).toLowerCase()} ${['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(r.tier) ? '' : r.rank}`.trim() : 'Unranked';
 
@@ -155,14 +169,23 @@ function Card({ player, ddVersion }) {
         </div>
       </div>
       {r ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: 12 }}>
-          <Stat label="Rank" value={rankStr} />
-          <Stat label="LP" value={r.leaguePoints} />
-          <Stat label={isTFT ? 'Top 4 %' : 'Win %'} value={wr + '%'} />
-          <Stat label="W/L" value={`${wins}/${losses}`} />
-          <Stat label={stat.label} value={stat.value} />
-          <Stat label="Games (4d)" value={player.totalGames4d ?? ms.length} />
-        </div>
+        <>
+          {/* Rolling window WR - prominent */}
+          <div style={{ background: '#0d1117', borderRadius: 6, padding: '10px 12px', marginBottom: 12, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+            <div>
+              <span style={{ fontSize: 22, fontWeight: 700, color: recentWR >= 50 ? '#3fb950' : recentWR === '—' ? '#484f58' : '#f85149' }}>{recentWR}%</span>
+              <span style={{ fontSize: 11, color: '#484f58', marginLeft: 6 }}>{isTFT ? 'top 4 rate' : 'win rate'} ({days}d)</span>
+            </div>
+            <span style={{ fontSize: 12, color: '#8b949e', fontFamily: 'monospace' }}>{recentW}W {recentL}L</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: 12 }}>
+            <Stat label="Rank" value={rankStr} />
+            <Stat label="LP" value={r.leaguePoints} />
+            <Stat label={isTFT ? 'Overall Top 4%' : 'Overall WR'} value={wr + '%'} />
+            <Stat label="Overall W/L" value={`${wins}/${losses}`} />
+          </div>
+        </>
       ) : <p style={{ color: '#484f58', fontSize: 13 }}>Unranked</p>}
     </div>
   );
@@ -177,12 +200,12 @@ function Stat({ label, value }) {
   );
 }
 
-function Games({ player, ddVersion }) {
+function Games({ player, ddVersion, since, days }) {
   const isTFT = player.type === 'tft';
   const ms = player.recentMatches;
   return (
     <div style={{ flex: '1 1 300px', background: '#161b22', border: '1px solid #21262d', borderRadius: 8, padding: '1rem' }}>
-      <div style={{ fontSize: 12, color: '#484f58', marginBottom: 8 }}>Recent — {player.gameName}</div>
+      <div style={{ fontSize: 12, color: '#484f58', marginBottom: 8 }}>{player.gameName} — {ms.length} games since {sinceLabel(since)}</div>
       {ms.length === 0 && <p style={{ color: '#30363d', fontSize: 12 }}>No games</p>}
       {ms.map((m, i) => isTFT ? <TRow key={i} m={m} /> : <LRow key={i} m={m} v={ddVersion} />)}
     </div>
@@ -193,13 +216,13 @@ function LRow({ m, v }) {
   const img = `https://ddragon.leagueoflegends.com/cdn/${v}/img/champion/${m.champion}.png`;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: '1px solid #21262d', fontSize: 12 }}>
-      <img src={img} alt="" style={{ width: 24, height: 24, borderRadius: 3 }} onError={e => e.target.style.display = 'none'} />
+      <img src={img} alt="" style={{ width: 24, height: 24, borderRadius: 3 }} onError={e => { e.target.style.display = 'none'; }} />
       <span style={{ color: '#e6edf3', width: 70, fontWeight: 500 }}>{m.champion}</span>
       <span style={{ color: '#8b949e', fontFamily: 'monospace', width: 65 }}>{m.kills}/{m.deaths}/{m.assists}</span>
       <span style={{ color: '#484f58', width: 40 }}>{m.cs} cs</span>
-      <span style={{ color: '#484f58', width: 30 }}>{Math.floor(m.duration / 60)}m</span>
       <span style={{ color: '#484f58', fontSize: 11 }}>{Q[m.queueId] || ''}</span>
-      <span style={{ marginLeft: 'auto', fontWeight: 600, color: m.win ? '#3fb950' : '#f85149' }}>{m.win ? 'W' : 'L'}</span>
+      <span style={{ marginLeft: 'auto', color: '#484f58', fontSize: 11, whiteSpace: 'nowrap' }}>{timeAgo(m.gameDate)}</span>
+      <span style={{ fontWeight: 600, color: m.win ? '#3fb950' : '#f85149', width: 14, textAlign: 'right' }}>{m.win ? 'W' : 'L'}</span>
     </div>
   );
 }
@@ -211,8 +234,8 @@ function TRow({ m }) {
       <span style={{ color: c, fontWeight: 700, fontFamily: 'monospace', width: 24, textAlign: 'center' }}>#{m.placement}</span>
       <span style={{ color: '#8b949e', width: 35 }}>Lv{m.level}</span>
       <span style={{ color: '#484f58', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.traits.join(', ')}</span>
-      <span style={{ color: '#484f58', fontSize: 11 }}>{Math.floor((m.gameLength || 0) / 60)}m</span>
       <span style={{ color: '#484f58', fontSize: 11 }}>{Q[m.queueId] || ''}</span>
+      <span style={{ color: '#484f58', fontSize: 11, whiteSpace: 'nowrap' }}>{timeAgo(m.gameDate)}</span>
     </div>
   );
 }
