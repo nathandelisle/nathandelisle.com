@@ -77,9 +77,9 @@ function Race() {
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '2rem 1.25rem' }}>
 
         <div style={{ marginBottom: '2rem' }}>
-          <a href="/" style={{ color: '#484f58', fontSize: 12, textDecoration: 'none' }}>nathandelisle.com</a>
-          <h1 style={{ fontSize: 20, fontWeight: 600, color: '#e6edf3', margin: '0.75rem 0 0.25rem' }}>Race to Master</h1>
-          <p style={{ color: '#484f58', fontSize: 13, margin: 0 }}>League vs TFT — since {sinceLabel(since)} ({days}d window)</p>
+          <a href="/" style={{ color: '#8b949e', fontSize: 13, textDecoration: 'none' }}>nathandelisle.com</a>
+          <h1 style={{ fontSize: 22, fontWeight: 600, color: '#e6edf3', margin: '0.75rem 0 0.25rem' }}>Race to Master</h1>
+          <p style={{ color: '#8b949e', fontSize: 14, margin: 0 }}>League vs TFT — since {sinceLabel(since)} ({days}d window)</p>
         </div>
 
         {/* Progress */}
@@ -87,7 +87,7 @@ function Race() {
           <Bar name={nathan.gameName} pct={nPct} lp={nLP} rank={nR} ahead={diff < 0} />
           <Bar name={isaac.gameName} pct={iPct} lp={iLP} rank={iR} ahead={diff > 0} />
           {diff !== 0 && (
-            <p style={{ color: '#484f58', fontSize: 12, marginTop: 8, textAlign: 'center' }}>
+            <p style={{ color: '#8b949e', fontSize: 13, marginTop: 8, textAlign: 'center' }}>
               {diff < 0 ? nathan.gameName : isaac.gameName} leads by {Math.abs(diff)} LP
             </p>
           )}
@@ -107,14 +107,14 @@ function Race() {
           <Games player={isaac} ddVersion={ddVersion} since={since} days={days} />
         </div>
 
-        <div style={{ textAlign: 'center', marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid #21262d' }}>
+        <div style={{ textAlign: 'center', marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid #30363d' }}>
           <button onClick={fetchData} disabled={loading} style={{
-            background: '#21262d', color: '#c9d1d9', border: '1px solid #30363d', borderRadius: 6,
-            padding: '6px 16px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+            background: '#21262d', color: '#e6edf3', border: '1px solid #30363d', borderRadius: 6,
+            padding: '8px 20px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
           }}>
             {loading ? 'Loading...' : 'Refresh'}
           </button>
-          <p style={{ color: '#30363d', fontSize: 11, marginTop: 8 }}>since {sinceLabel(since)}</p>
+          <p style={{ color: '#6e7681', fontSize: 12, marginTop: 8 }}>since {sinceLabel(since)}</p>
         </div>
       </div>
     </div>
@@ -125,15 +125,15 @@ function Bar({ name, pct, lp, rank, ahead }) {
   const color = rank ? {
     IRON: '#5e5146', BRONZE: '#8c5a2d', SILVER: '#7b8894', GOLD: '#cd8837',
     PLATINUM: '#4e9996', EMERALD: '#0f9b53', DIAMOND: '#576BCE', MASTER: '#9D48E0',
-  }[rank.tier] || '#484f58' : '#484f58';
+  }[rank.tier] || '#6e7681' : '#6e7681';
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-      <span style={{ width: 75, fontSize: 12, textAlign: 'right', color: ahead ? '#e6edf3' : '#484f58', fontWeight: ahead ? 600 : 400 }}>{name}</span>
-      <div style={{ flex: 1, height: 6, background: '#21262d', borderRadius: 3, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: Math.min(pct, 100) + '%', background: color, borderRadius: 3, transition: 'width 0.6s ease' }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+      <span style={{ width: 80, fontSize: 13, textAlign: 'right', color: ahead ? '#e6edf3' : '#8b949e', fontWeight: ahead ? 600 : 400 }}>{name}</span>
+      <div style={{ flex: 1, height: 8, background: '#21262d', borderRadius: 4, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: Math.min(pct, 100) + '%', background: color, borderRadius: 4, transition: 'width 0.6s ease' }} />
       </div>
-      <span style={{ width: 55, fontSize: 11, color: '#484f58', fontFamily: 'monospace' }}>{lp != null ? lp + ' LP' : '—'}</span>
+      <span style={{ width: 60, fontSize: 12, color: '#8b949e', fontFamily: 'monospace' }}>{lp != null ? lp + ' LP' : '—'}</span>
     </div>
   );
 }
@@ -147,7 +147,6 @@ function Card({ player, ddVersion, days }) {
   const total = wins + losses;
   const wr = total > 0 ? ((wins / total) * 100).toFixed(1) : '0';
 
-  // Rolling window win rate from match details
   const ms = player.recentMatches;
   let recentW, recentL;
   if (isTFT) {
@@ -163,33 +162,32 @@ function Card({ player, ddVersion, days }) {
   const rankStr = r ? `${r.tier.charAt(0) + r.tier.slice(1).toLowerCase()} ${['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(r.tier) ? '' : r.rank}`.trim() : 'Unranked';
 
   return (
-    <div style={{ flex: '1 1 300px', background: '#161b22', border: '1px solid #21262d', borderRadius: 8, padding: '1rem' }}>
+    <div style={{ flex: '1 1 300px', background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: '1rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-        <img src={icon} alt="" style={{ width: 36, height: 36, borderRadius: '50%' }} />
+        <img src={icon} alt="" style={{ width: 40, height: 40, borderRadius: '50%' }} />
         <div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#e6edf3' }}>{player.gameName}<span style={{ color: '#484f58', fontWeight: 400 }}> #{player.tagLine}</span></div>
-          <div style={{ fontSize: 11, color: '#484f58' }}>{isTFT ? 'TFT' : 'League'}</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: '#e6edf3' }}>{player.gameName}<span style={{ color: '#6e7681', fontWeight: 400 }}> #{player.tagLine}</span></div>
+          <div style={{ fontSize: 12, color: '#8b949e' }}>{isTFT ? 'TFT' : 'League'}</div>
         </div>
       </div>
       {r ? (
         <>
-          {/* Rolling window WR - prominent */}
           <div style={{ background: '#0d1117', borderRadius: 6, padding: '10px 12px', marginBottom: 12, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
             <div>
-              <span style={{ fontSize: 22, fontWeight: 700, color: recentWR >= 50 ? '#3fb950' : recentWR === '—' ? '#484f58' : '#f85149' }}>{recentWR}%</span>
-              <span style={{ fontSize: 11, color: '#484f58', marginLeft: 6 }}>{isTFT ? 'top 4 rate' : 'win rate'} ({days}d)</span>
+              <span style={{ fontSize: 24, fontWeight: 700, color: recentWR >= 50 ? '#3fb950' : recentWR === '—' ? '#6e7681' : '#f85149' }}>{recentWR}%</span>
+              <span style={{ fontSize: 12, color: '#8b949e', marginLeft: 6 }}>{isTFT ? 'top 4 rate' : 'win rate'} ({days}d)</span>
             </div>
-            <span style={{ fontSize: 12, color: '#8b949e', fontFamily: 'monospace' }}>{recentW}W {recentL}L</span>
+            <span style={{ fontSize: 13, color: '#c9d1d9', fontFamily: 'monospace' }}>{recentW}W {recentL}L</span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: 13 }}>
             <Stat label="Rank" value={rankStr} />
             <Stat label="LP" value={r.leaguePoints} />
             <Stat label={isTFT ? 'Overall Top 4%' : 'Overall WR'} value={wr + '%'} />
             <Stat label="Overall W/L" value={`${wins}/${losses}`} />
           </div>
         </>
-      ) : <p style={{ color: '#484f58', fontSize: 13 }}>Unranked</p>}
+      ) : <p style={{ color: '#6e7681', fontSize: 14 }}>Unranked</p>}
     </div>
   );
 }
@@ -197,8 +195,8 @@ function Card({ player, ddVersion, days }) {
 function Stat({ label, value }) {
   return (
     <div>
-      <div style={{ color: '#484f58', fontSize: 11 }}>{label}</div>
-      <div style={{ color: '#e6edf3', fontWeight: 500, fontSize: 13 }}>{value}</div>
+      <div style={{ color: '#8b949e', fontSize: 12 }}>{label}</div>
+      <div style={{ color: '#e6edf3', fontWeight: 500, fontSize: 14 }}>{value}</div>
     </div>
   );
 }
@@ -207,9 +205,9 @@ function Games({ player, ddVersion, since, days }) {
   const isTFT = player.type === 'tft';
   const ms = player.recentMatches;
   return (
-    <div style={{ flex: '1 1 300px', background: '#161b22', border: '1px solid #21262d', borderRadius: 8, padding: '1rem' }}>
-      <div style={{ fontSize: 12, color: '#484f58', marginBottom: 8 }}>{player.gameName} — {ms.length} games since {sinceLabel(since)}</div>
-      {ms.length === 0 && <p style={{ color: '#30363d', fontSize: 12 }}>No games</p>}
+    <div style={{ flex: '1 1 300px', background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: '1rem' }}>
+      <div style={{ fontSize: 13, color: '#8b949e', marginBottom: 10 }}>{player.gameName} — {ms.length} games since {sinceLabel(since)}</div>
+      {ms.length === 0 && <p style={{ color: '#6e7681', fontSize: 13 }}>No games</p>}
       {ms.map((m, i) => isTFT ? <TRow key={i} m={m} /> : <LRow key={i} m={m} v={ddVersion} />)}
     </div>
   );
@@ -220,23 +218,23 @@ function LRow({ m, v }) {
   const kda = m.deaths > 0 ? ((m.kills + m.assists) / m.deaths).toFixed(1) : 'P';
   const dmgK = m.dmg >= 1000 ? (m.dmg / 1000).toFixed(1) + 'k' : m.dmg;
   return (
-    <div style={{ padding: '6px 0', borderBottom: '1px solid #21262d' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-        <img src={img} alt="" style={{ width: 26, height: 26, borderRadius: 3 }} onError={e => { e.target.style.display = 'none'; }} />
-        <span style={{ color: '#e6edf3', width: 72, fontWeight: 500 }}>{m.champion}</span>
-        <span style={{ color: '#8b949e', fontFamily: 'monospace' }}>{m.kills}/{m.deaths}/{m.assists}</span>
-        <span style={{ color: '#484f58', fontSize: 11 }}>({kda})</span>
-        {m.mvp && <span style={{ color: '#e3b341', fontSize: 10, fontWeight: 600 }}>ACE</span>}
+    <div style={{ padding: '7px 0', borderBottom: '1px solid #21262d' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+        <img src={img} alt="" style={{ width: 28, height: 28, borderRadius: 3 }} onError={e => { e.target.style.display = 'none'; }} />
+        <span style={{ color: '#e6edf3', width: 76, fontWeight: 500 }}>{m.champion}</span>
+        <span style={{ color: '#c9d1d9', fontFamily: 'monospace' }}>{m.kills}/{m.deaths}/{m.assists}</span>
+        <span style={{ color: '#8b949e', fontSize: 12 }}>({kda})</span>
+        {m.mvp && <span style={{ color: '#e3b341', fontSize: 11, fontWeight: 600 }}>ACE</span>}
         <span style={{ marginLeft: 'auto', fontWeight: 600, color: m.win ? '#3fb950' : '#f85149' }}>{m.win ? 'W' : 'L'}</span>
       </div>
-      <div style={{ display: 'flex', gap: 12, fontSize: 11, color: '#484f58', marginTop: 3, paddingLeft: 34 }}>
+      <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#8b949e', marginTop: 4, paddingLeft: 36 }}>
         <span>{m.csMin} cs/m</span>
         <span>{dmgK} dmg</span>
         <span>{m.dpm} dpm</span>
         <span>{m.vision} vis</span>
         <span>{Math.floor(m.duration / 60)}m</span>
         <span>{Q[m.queueId] || ''}</span>
-        <span style={{ marginLeft: 'auto' }}>{timeAgo(m.gameDate)}</span>
+        <span style={{ marginLeft: 'auto', color: '#6e7681' }}>{timeAgo(m.gameDate)}</span>
       </div>
     </div>
   );
@@ -246,21 +244,21 @@ function TRow({ m }) {
   const c = m.placement <= 1 ? '#e3b341' : m.placement <= 4 ? '#3fb950' : '#f85149';
   const unitStr = (m.units || []).map(u => u.tier > 1 ? `${u.name}★${u.tier}` : u.name).join(', ');
   return (
-    <div style={{ padding: '6px 0', borderBottom: '1px solid #21262d' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-        <span style={{ color: c, fontWeight: 700, fontFamily: 'monospace', width: 26, textAlign: 'center' }}>#{m.placement}</span>
-        <span style={{ color: '#8b949e' }}>Lv{m.level}</span>
+    <div style={{ padding: '7px 0', borderBottom: '1px solid #21262d' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+        <span style={{ color: c, fontWeight: 700, fontFamily: 'monospace', width: 28, textAlign: 'center' }}>#{m.placement}</span>
+        <span style={{ color: '#c9d1d9' }}>Lv{m.level}</span>
         <span style={{ color: '#e6edf3', fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.traits.join(', ')}</span>
-        <span style={{ color: '#484f58', fontSize: 11 }}>{timeAgo(m.gameDate)}</span>
+        <span style={{ color: '#6e7681', fontSize: 12 }}>{timeAgo(m.gameDate)}</span>
       </div>
-      <div style={{ display: 'flex', gap: 12, fontSize: 11, color: '#484f58', marginTop: 3, paddingLeft: 34 }}>
+      <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#8b949e', marginTop: 4, paddingLeft: 36 }}>
         {m.playersEliminated > 0 && <span>{m.playersEliminated} kills</span>}
         <span>{m.dmgToPlayers} dmg</span>
         <span>Rd {m.lastRound}</span>
         <span>{Math.floor((m.gameLength || 0) / 60)}m</span>
         <span>{Q[m.queueId] || ''}</span>
       </div>
-      {unitStr && <div style={{ fontSize: 10, color: '#30363d', marginTop: 2, paddingLeft: 34, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{unitStr}</div>}
+      {unitStr && <div style={{ fontSize: 11, color: '#6e7681', marginTop: 3, paddingLeft: 36, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{unitStr}</div>}
     </div>
   );
 }
@@ -274,12 +272,10 @@ function estimateLP(player) {
   const currentAbsLP = ti * 400 + di * 100 + r.leaguePoints;
   const isTFT = player.type === 'tft';
 
-  // Walk backwards through matches (newest first) to reconstruct LP curve
   const ms = [...player.recentMatches].reverse(); // oldest first
-  const points = [];
   let lp = currentAbsLP;
 
-  // Undo each game to get starting LP, then rebuild forward
+  // Undo each game to get starting LP
   for (const m of [...player.recentMatches]) {
     if (isTFT) {
       const delta = m.placement <= 1 ? 38 : m.placement <= 2 ? 28 : m.placement <= 3 ? 18 : m.placement <= 4 ? 8 : m.placement <= 5 ? -8 : m.placement <= 6 ? -18 : m.placement <= 7 ? -28 : -38;
@@ -289,8 +285,9 @@ function estimateLP(player) {
     }
   }
 
-  // Now walk forward from estimated start
+  // Walk forward from estimated start
   const startLP = lp;
+  const points = [];
   points.push({ t: ms.length > 0 ? ms[0].gameDate - 3600000 : Date.now() - 4 * 86400000, lp: startLP });
   lp = startLP;
   for (const m of ms) {
@@ -302,7 +299,6 @@ function estimateLP(player) {
     }
     points.push({ t: m.gameDate, lp });
   }
-  // Add current point
   points.push({ t: Date.now(), lp: currentAbsLP });
   return points;
 }
@@ -319,14 +315,22 @@ function LPGraph({ nathan, isaac, since }) {
   const tMin = since;
   const tMax = Date.now();
 
-  const W = 680, H = 160, PAD_L = 35, PAD_R = 10, PAD_T = 10, PAD_B = 22;
+  const W = 680, H = 170, PAD_L = 38, PAD_R = 10, PAD_T = 10, PAD_B = 24;
   const gW = W - PAD_L - PAD_R, gH = H - PAD_T - PAD_B;
 
   const toX = t => PAD_L + ((t - tMin) / (tMax - tMin)) * gW;
   const toY = lp => PAD_T + gH - ((lp - minLP) / (maxLP - minLP)) * gH;
   const fromX = x => tMin + ((x - PAD_L) / gW) * (tMax - tMin);
 
-  const makePath = (pts) => pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(p.t).toFixed(1)},${toY(p.lp).toFixed(1)}`).join(' ');
+  // Step function path: hold LP flat until next game, then jump
+  const makePath = (pts) => {
+    if (pts.length === 0) return '';
+    let d = `M${toX(pts[0].t).toFixed(1)},${toY(pts[0].lp).toFixed(1)}`;
+    for (let i = 1; i < pts.length; i++) {
+      d += ` H${toX(pts[i].t).toFixed(1)} V${toY(pts[i].lp).toFixed(1)}`;
+    }
+    return d;
+  };
 
   // Y-axis labels
   const lpRange = maxLP - minLP;
@@ -336,7 +340,7 @@ function LPGraph({ nathan, isaac, since }) {
     ticks.push(v);
   }
 
-  // X-axis date labels — one per day
+  // X-axis date labels
   const dayMs = 86400000;
   const startDay = new Date(tMin);
   startDay.setHours(0, 0, 0, 0);
@@ -360,18 +364,14 @@ function LPGraph({ nathan, isaac, since }) {
     return months[d.getMonth()] + ' ' + d.getDate();
   };
 
-  // Interpolate LP at a given timestamp from a point array
+  // Step function lookup: LP holds at previous game's value
   const lpAt = (pts, t) => {
     if (pts.length === 0) return null;
     if (t <= pts[0].t) return pts[0].lp;
-    if (t >= pts[pts.length - 1].t) return pts[pts.length - 1].lp;
-    for (let i = 1; i < pts.length; i++) {
-      if (t <= pts[i].t) {
-        const frac = (t - pts[i - 1].t) / (pts[i].t - pts[i - 1].t);
-        return Math.round(pts[i - 1].lp + frac * (pts[i].lp - pts[i - 1].lp));
-      }
+    for (let i = pts.length - 1; i >= 0; i--) {
+      if (t >= pts[i].t) return pts[i].lp;
     }
-    return pts[pts.length - 1].lp;
+    return pts[0].lp;
   };
 
   const handleMouse = (e) => {
@@ -386,38 +386,38 @@ function LPGraph({ nathan, isaac, since }) {
   };
 
   return (
-    <div style={{ background: '#161b22', border: '1px solid #21262d', borderRadius: 8, padding: '12px 8px 8px', marginBottom: 16 }}>
-      <div style={{ fontSize: 11, color: '#484f58', marginBottom: 4, paddingLeft: PAD_L }}>Estimated LP</div>
+    <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: '14px 10px 10px', marginBottom: 16 }}>
+      <div style={{ fontSize: 12, color: '#8b949e', marginBottom: 6, paddingLeft: PAD_L }}>Estimated LP</div>
       <div style={{ position: 'relative' }}>
         <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block', cursor: 'crosshair' }}
           onMouseMove={handleMouse} onMouseLeave={() => setHover(null)}>
           {/* Grid lines */}
           {ticks.map(v => (
             <g key={v}>
-              <line x1={PAD_L} x2={W - PAD_R} y1={toY(v)} y2={toY(v)} stroke="#21262d" strokeWidth="1" />
-              <text x={PAD_L - 4} y={toY(v) + 3} fill="#30363d" fontSize="9" textAnchor="end" fontFamily="monospace">{rankLabel(v)}</text>
+              <line x1={PAD_L} x2={W - PAD_R} y1={toY(v)} y2={toY(v)} stroke="#30363d" strokeWidth="1" />
+              <text x={PAD_L - 5} y={toY(v) + 3.5} fill="#8b949e" fontSize="10" textAnchor="end" fontFamily="monospace">{rankLabel(v)}</text>
             </g>
           ))}
           {/* X-axis date labels */}
           {xTicks.map(t => (
             <g key={t}>
-              <line x1={toX(t)} x2={toX(t)} y1={PAD_T} y2={PAD_T + gH} stroke="#21262d" strokeWidth="1" strokeDasharray="3,3" />
-              <text x={toX(t)} y={H - 4} fill="#30363d" fontSize="9" textAnchor="middle" fontFamily="monospace">{dayLabel(t)}</text>
+              <line x1={toX(t)} x2={toX(t)} y1={PAD_T} y2={PAD_T + gH} stroke="#30363d" strokeWidth="1" strokeDasharray="3,3" />
+              <text x={toX(t)} y={H - 5} fill="#8b949e" fontSize="10" textAnchor="middle" fontFamily="monospace">{dayLabel(t)}</text>
             </g>
           ))}
           {/* Nathan line */}
-          {nPts.length > 1 && <path d={makePath(nPts)} fill="none" stroke="#576BCE" strokeWidth="2" strokeLinejoin="round" />}
+          {nPts.length > 1 && <path d={makePath(nPts)} fill="none" stroke="#576BCE" strokeWidth="2.5" strokeLinejoin="round" />}
           {/* Isaac line */}
-          {iPts.length > 1 && <path d={makePath(iPts)} fill="none" stroke="#3fb950" strokeWidth="2" strokeLinejoin="round" />}
+          {iPts.length > 1 && <path d={makePath(iPts)} fill="none" stroke="#3fb950" strokeWidth="2.5" strokeLinejoin="round" />}
           {/* Dots at current */}
-          {nPts.length > 0 && <circle cx={toX(nPts[nPts.length-1].t)} cy={toY(nPts[nPts.length-1].lp)} r="3" fill="#576BCE" />}
-          {iPts.length > 0 && <circle cx={toX(iPts[iPts.length-1].t)} cy={toY(iPts[iPts.length-1].lp)} r="3" fill="#3fb950" />}
+          {nPts.length > 0 && <circle cx={toX(nPts[nPts.length-1].t)} cy={toY(nPts[nPts.length-1].lp)} r="4" fill="#576BCE" />}
+          {iPts.length > 0 && <circle cx={toX(iPts[iPts.length-1].t)} cy={toY(iPts[iPts.length-1].lp)} r="4" fill="#3fb950" />}
           {/* Hover crosshair + dots */}
           {hover && (
             <>
-              <line x1={hover.x} x2={hover.x} y1={PAD_T} y2={PAD_T + gH} stroke="#484f58" strokeWidth="1" strokeDasharray="2,2" />
-              {hover.nLP != null && <circle cx={hover.x} cy={toY(hover.nLP)} r="4" fill="#576BCE" stroke="#0d1117" strokeWidth="1.5" />}
-              {hover.iLP != null && <circle cx={hover.x} cy={toY(hover.iLP)} r="4" fill="#3fb950" stroke="#0d1117" strokeWidth="1.5" />}
+              <line x1={hover.x} x2={hover.x} y1={PAD_T} y2={PAD_T + gH} stroke="#6e7681" strokeWidth="1" strokeDasharray="2,2" />
+              {hover.nLP != null && <circle cx={hover.x} cy={toY(hover.nLP)} r="5" fill="#576BCE" stroke="#161b22" strokeWidth="2" />}
+              {hover.iLP != null && <circle cx={hover.x} cy={toY(hover.iLP)} r="5" fill="#3fb950" stroke="#161b22" strokeWidth="2" />}
             </>
           )}
         </svg>
@@ -428,17 +428,17 @@ function LPGraph({ nathan, isaac, since }) {
             left: hover.x > W / 2 ? undefined : `${(hover.x / W) * 100}%`,
             right: hover.x > W / 2 ? `${((W - hover.x) / W) * 100}%` : undefined,
             background: '#0d1117', border: '1px solid #30363d', borderRadius: 6,
-            padding: '5px 8px', fontSize: 11, pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 10,
+            padding: '6px 10px', fontSize: 12, pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 10,
           }}>
-            <div style={{ color: '#484f58', marginBottom: 3 }}>{dayLabel(hover.t)} {new Date(hover.t).getHours()}:{String(new Date(hover.t).getMinutes()).padStart(2, '0')}</div>
+            <div style={{ color: '#8b949e', marginBottom: 3 }}>{dayLabel(hover.t)} {new Date(hover.t).getHours()}:{String(new Date(hover.t).getMinutes()).padStart(2, '0')}</div>
             {hover.nLP != null && <div style={{ color: '#576BCE' }}>{nathan.gameName}: {rankLabel(hover.nLP)} ({hover.nLP % 100} LP)</div>}
             {hover.iLP != null && <div style={{ color: '#3fb950' }}>{isaac.gameName}: {rankLabel(hover.iLP)} ({hover.iLP % 100} LP)</div>}
           </div>
         )}
       </div>
-      <div style={{ display: 'flex', gap: 16, justifyContent: 'center', fontSize: 11, marginTop: 4 }}>
-        <span><span style={{ color: '#576BCE' }}>—</span> <span style={{ color: '#484f58' }}>{nathan.gameName}</span></span>
-        <span><span style={{ color: '#3fb950' }}>—</span> <span style={{ color: '#484f58' }}>{isaac.gameName}</span></span>
+      <div style={{ display: 'flex', gap: 16, justifyContent: 'center', fontSize: 12, marginTop: 6 }}>
+        <span><span style={{ color: '#576BCE' }}>—</span> <span style={{ color: '#8b949e' }}>{nathan.gameName}</span></span>
+        <span><span style={{ color: '#3fb950' }}>—</span> <span style={{ color: '#8b949e' }}>{isaac.gameName}</span></span>
       </div>
     </div>
   );
@@ -448,9 +448,9 @@ function Loading() {
   return (
     <div style={{ minHeight: '100vh', background: '#0d1117', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center' }}>
-        <p style={{ color: '#e6edf3', fontSize: 16, fontWeight: 600, fontFamily: '-apple-system, sans-serif' }}>Race to Master</p>
+        <p style={{ color: '#e6edf3', fontSize: 18, fontWeight: 600, fontFamily: '-apple-system, sans-serif' }}>Race to Master</p>
         <div className="race-loader" style={{ margin: '1rem auto' }} />
-        <p style={{ color: '#484f58', fontSize: 12 }}>Loading...</p>
+        <p style={{ color: '#8b949e', fontSize: 13 }}>Loading...</p>
       </div>
     </div>
   );
@@ -460,13 +460,13 @@ function Err({ error, retry }) {
   return (
     <div style={{ minHeight: '100vh', background: '#0d1117', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: '-apple-system, sans-serif' }}>
       <div style={{ textAlign: 'center', maxWidth: 400, padding: '0 1rem' }}>
-        <p style={{ color: '#e6edf3', fontSize: 16, fontWeight: 600 }}>Race to Master</p>
-        <p style={{ color: '#f85149', fontSize: 13, margin: '1rem 0', wordBreak: 'break-word' }}>{error}</p>
+        <p style={{ color: '#e6edf3', fontSize: 18, fontWeight: 600 }}>Race to Master</p>
+        <p style={{ color: '#f85149', fontSize: 14, margin: '1rem 0', wordBreak: 'break-word' }}>{error}</p>
         <button onClick={retry} style={{
-          background: '#21262d', color: '#c9d1d9', border: '1px solid #30363d', borderRadius: 6,
-          padding: '6px 16px', fontSize: 12, cursor: 'pointer',
+          background: '#21262d', color: '#e6edf3', border: '1px solid #30363d', borderRadius: 6,
+          padding: '8px 20px', fontSize: 13, cursor: 'pointer',
         }}>Retry</button>
-        <p style={{ color: '#30363d', fontSize: 11, marginTop: 12 }}>API key may need refresh</p>
+        <p style={{ color: '#6e7681', fontSize: 12, marginTop: 12 }}>API key may need refresh</p>
       </div>
     </div>
   );
