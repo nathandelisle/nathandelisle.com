@@ -93,6 +93,9 @@ function Race() {
           )}
         </div>
 
+        {/* LP Graph */}
+        <LPGraph nathan={nathan} isaac={isaac} since={since} />
+
         {/* Two columns */}
         <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
           <Card player={nathan} ddVersion={ddVersion} days={days} />
@@ -214,28 +217,156 @@ function Games({ player, ddVersion, since, days }) {
 
 function LRow({ m, v }) {
   const img = `https://ddragon.leagueoflegends.com/cdn/${v}/img/champion/${m.champion}.png`;
+  const kda = m.deaths > 0 ? ((m.kills + m.assists) / m.deaths).toFixed(1) : 'P';
+  const dmgK = m.dmg >= 1000 ? (m.dmg / 1000).toFixed(1) + 'k' : m.dmg;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: '1px solid #21262d', fontSize: 12 }}>
-      <img src={img} alt="" style={{ width: 24, height: 24, borderRadius: 3 }} onError={e => { e.target.style.display = 'none'; }} />
-      <span style={{ color: '#e6edf3', width: 70, fontWeight: 500 }}>{m.champion}</span>
-      <span style={{ color: '#8b949e', fontFamily: 'monospace', width: 65 }}>{m.kills}/{m.deaths}/{m.assists}</span>
-      <span style={{ color: '#484f58', width: 40 }}>{m.cs} cs</span>
-      <span style={{ color: '#484f58', fontSize: 11 }}>{Q[m.queueId] || ''}</span>
-      <span style={{ marginLeft: 'auto', color: '#484f58', fontSize: 11, whiteSpace: 'nowrap' }}>{timeAgo(m.gameDate)}</span>
-      <span style={{ fontWeight: 600, color: m.win ? '#3fb950' : '#f85149', width: 14, textAlign: 'right' }}>{m.win ? 'W' : 'L'}</span>
+    <div style={{ padding: '6px 0', borderBottom: '1px solid #21262d' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+        <img src={img} alt="" style={{ width: 26, height: 26, borderRadius: 3 }} onError={e => { e.target.style.display = 'none'; }} />
+        <span style={{ color: '#e6edf3', width: 72, fontWeight: 500 }}>{m.champion}</span>
+        <span style={{ color: '#8b949e', fontFamily: 'monospace' }}>{m.kills}/{m.deaths}/{m.assists}</span>
+        <span style={{ color: '#484f58', fontSize: 11 }}>({kda})</span>
+        {m.mvp && <span style={{ color: '#e3b341', fontSize: 10, fontWeight: 600 }}>ACE</span>}
+        <span style={{ marginLeft: 'auto', fontWeight: 600, color: m.win ? '#3fb950' : '#f85149' }}>{m.win ? 'W' : 'L'}</span>
+      </div>
+      <div style={{ display: 'flex', gap: 12, fontSize: 11, color: '#484f58', marginTop: 3, paddingLeft: 34 }}>
+        <span>{m.csMin} cs/m</span>
+        <span>{dmgK} dmg</span>
+        <span>{m.dpm} dpm</span>
+        <span>{m.vision} vis</span>
+        <span>{Math.floor(m.duration / 60)}m</span>
+        <span>{Q[m.queueId] || ''}</span>
+        <span style={{ marginLeft: 'auto' }}>{timeAgo(m.gameDate)}</span>
+      </div>
     </div>
   );
 }
 
 function TRow({ m }) {
   const c = m.placement <= 1 ? '#e3b341' : m.placement <= 4 ? '#3fb950' : '#f85149';
+  const unitStr = (m.units || []).map(u => u.tier > 1 ? `${u.name}★${u.tier}` : u.name).join(', ');
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: '1px solid #21262d', fontSize: 12 }}>
-      <span style={{ color: c, fontWeight: 700, fontFamily: 'monospace', width: 24, textAlign: 'center' }}>#{m.placement}</span>
-      <span style={{ color: '#8b949e', width: 35 }}>Lv{m.level}</span>
-      <span style={{ color: '#484f58', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.traits.join(', ')}</span>
-      <span style={{ color: '#484f58', fontSize: 11 }}>{Q[m.queueId] || ''}</span>
-      <span style={{ color: '#484f58', fontSize: 11, whiteSpace: 'nowrap' }}>{timeAgo(m.gameDate)}</span>
+    <div style={{ padding: '6px 0', borderBottom: '1px solid #21262d' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+        <span style={{ color: c, fontWeight: 700, fontFamily: 'monospace', width: 26, textAlign: 'center' }}>#{m.placement}</span>
+        <span style={{ color: '#8b949e' }}>Lv{m.level}</span>
+        <span style={{ color: '#e6edf3', fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.traits.join(', ')}</span>
+        <span style={{ color: '#484f58', fontSize: 11 }}>{timeAgo(m.gameDate)}</span>
+      </div>
+      <div style={{ display: 'flex', gap: 12, fontSize: 11, color: '#484f58', marginTop: 3, paddingLeft: 34 }}>
+        {m.playersEliminated > 0 && <span>{m.playersEliminated} kills</span>}
+        <span>{m.dmgToPlayers} dmg</span>
+        <span>Rd {m.lastRound}</span>
+        <span>{Math.floor((m.gameLength || 0) / 60)}m</span>
+        <span>{Q[m.queueId] || ''}</span>
+      </div>
+      {unitStr && <div style={{ fontSize: 10, color: '#30363d', marginTop: 2, paddingLeft: 34, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{unitStr}</div>}
+    </div>
+  );
+}
+
+function estimateLP(player) {
+  const r = player.ranked;
+  if (!r) return [];
+  const ti = TIERS.indexOf(r.tier);
+  const di = DIVS.indexOf(r.rank);
+  if (ti === -1 || di === -1) return [];
+  const currentAbsLP = ti * 400 + di * 100 + r.leaguePoints;
+  const isTFT = player.type === 'tft';
+
+  // Walk backwards through matches (newest first) to reconstruct LP curve
+  const ms = [...player.recentMatches].reverse(); // oldest first
+  const points = [];
+  let lp = currentAbsLP;
+
+  // Undo each game to get starting LP, then rebuild forward
+  for (const m of [...player.recentMatches]) {
+    if (isTFT) {
+      const delta = m.placement <= 1 ? 38 : m.placement <= 2 ? 28 : m.placement <= 3 ? 18 : m.placement <= 4 ? 8 : m.placement <= 5 ? -8 : m.placement <= 6 ? -18 : m.placement <= 7 ? -28 : -38;
+      lp -= delta;
+    } else {
+      lp -= m.win ? 22 : -18;
+    }
+  }
+
+  // Now walk forward from estimated start
+  const startLP = lp;
+  points.push({ t: ms.length > 0 ? ms[0].gameDate - 3600000 : Date.now() - 4 * 86400000, lp: startLP });
+  lp = startLP;
+  for (const m of ms) {
+    if (isTFT) {
+      const delta = m.placement <= 1 ? 38 : m.placement <= 2 ? 28 : m.placement <= 3 ? 18 : m.placement <= 4 ? 8 : m.placement <= 5 ? -8 : m.placement <= 6 ? -18 : m.placement <= 7 ? -28 : -38;
+      lp += delta;
+    } else {
+      lp += m.win ? 22 : -18;
+    }
+    points.push({ t: m.gameDate, lp });
+  }
+  // Add current point
+  points.push({ t: Date.now(), lp: currentAbsLP });
+  return points;
+}
+
+function LPGraph({ nathan, isaac, since }) {
+  const nPts = estimateLP(nathan);
+  const iPts = estimateLP(isaac);
+  if (nPts.length < 2 && iPts.length < 2) return null;
+
+  const allLP = [...nPts.map(p => p.lp), ...iPts.map(p => p.lp)];
+  const minLP = Math.min(...allLP) - 15;
+  const maxLP = Math.max(...allLP) + 15;
+  const tMin = since;
+  const tMax = Date.now();
+
+  const W = 680, H = 140, PAD_L = 35, PAD_R = 10, PAD_T = 10, PAD_B = 22;
+  const gW = W - PAD_L - PAD_R, gH = H - PAD_T - PAD_B;
+
+  const toX = t => PAD_L + ((t - tMin) / (tMax - tMin)) * gW;
+  const toY = lp => PAD_T + gH - ((lp - minLP) / (maxLP - minLP)) * gH;
+
+  const makePath = (pts) => pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(p.t).toFixed(1)},${toY(p.lp).toFixed(1)}`).join(' ');
+
+  // Y-axis labels: show a few LP tick marks
+  const lpRange = maxLP - minLP;
+  const step = lpRange > 100 ? 50 : lpRange > 40 ? 20 : 10;
+  const ticks = [];
+  for (let v = Math.ceil(minLP / step) * step; v <= maxLP; v += step) {
+    ticks.push(v);
+  }
+
+  // Rank label from absolute LP
+  const rankLabel = (absLP) => {
+    if (absLP >= 2800) return 'Master';
+    const t = Math.floor(absLP / 400);
+    const d = Math.floor((absLP % 400) / 100);
+    const tierNames = ['I', 'B', 'S', 'G', 'P', 'E', 'D'];
+    const divNames = ['4', '3', '2', '1'];
+    return (tierNames[t] || '?') + divNames[d];
+  };
+
+  return (
+    <div style={{ background: '#161b22', border: '1px solid #21262d', borderRadius: 8, padding: '12px 8px 8px', marginBottom: 16 }}>
+      <div style={{ fontSize: 11, color: '#484f58', marginBottom: 4, paddingLeft: PAD_L }}>Estimated LP</div>
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
+        {/* Grid lines */}
+        {ticks.map(v => (
+          <g key={v}>
+            <line x1={PAD_L} x2={W - PAD_R} y1={toY(v)} y2={toY(v)} stroke="#21262d" strokeWidth="1" />
+            <text x={PAD_L - 4} y={toY(v) + 3} fill="#30363d" fontSize="9" textAnchor="end" fontFamily="monospace">{rankLabel(v)}</text>
+          </g>
+        ))}
+        {/* Nathan line */}
+        {nPts.length > 1 && <path d={makePath(nPts)} fill="none" stroke="#576BCE" strokeWidth="2" strokeLinejoin="round" />}
+        {/* Isaac line */}
+        {iPts.length > 1 && <path d={makePath(iPts)} fill="none" stroke="#3fb950" strokeWidth="2" strokeLinejoin="round" />}
+        {/* Dots at current */}
+        {nPts.length > 0 && <circle cx={toX(nPts[nPts.length-1].t)} cy={toY(nPts[nPts.length-1].lp)} r="3" fill="#576BCE" />}
+        {iPts.length > 0 && <circle cx={toX(iPts[iPts.length-1].t)} cy={toY(iPts[iPts.length-1].lp)} r="3" fill="#3fb950" />}
+      </svg>
+      <div style={{ display: 'flex', gap: 16, justifyContent: 'center', fontSize: 11, marginTop: 4 }}>
+        <span><span style={{ color: '#576BCE' }}>—</span> <span style={{ color: '#484f58' }}>{nathan.gameName}</span></span>
+        <span><span style={{ color: '#3fb950' }}>—</span> <span style={{ color: '#484f58' }}>{isaac.gameName}</span></span>
+      </div>
     </div>
   );
 }

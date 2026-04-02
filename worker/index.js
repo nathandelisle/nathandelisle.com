@@ -66,21 +66,45 @@ async function getPlayerData(gameName, tagLine, type, apiKey) {
           .sort((a, b) => b.tier_current - a.tier_current)
           .slice(0, 3)
           .map((t) => cleanName(t.name)),
-        units: (p.units || []).slice(0, 6).map((u) => cleanName(u.character_id)),
+        units: (p.units || []).slice(0, 8).map((u) => ({
+          name: cleanName(u.character_id),
+          tier: u.tier,
+          rarity: u.rarity,
+        })),
         augments: (p.augments || []).map(cleanName),
+        goldLeft: p.gold_left,
+        playersEliminated: p.players_eliminated,
+        dmgToPlayers: p.total_damage_to_players,
+        lastRound: p.last_round,
         gameLength: m.info.game_length,
         gameDate: m.info.game_datetime,
         queueId: m.info.queue_id,
       };
     } else {
       const p = m.info.participants.find((x) => x.puuid === account.puuid);
+      const mins = m.info.gameDuration / 60;
+      const cs = p.totalMinionsKilled + p.neutralMinionsKilled;
+      const dmg = p.totalDamageDealtToChampions;
+
+      // MVP check: best KDA in the game
+      const kda = (d) => (d.kills + d.assists) / Math.max(d.deaths, 1);
+      const myKDA = kda(p);
+      const isMVP = m.info.participants.every((o) => kda(o) <= myKDA);
+
       return {
         champion: p.championName,
         kills: p.kills,
         deaths: p.deaths,
         assists: p.assists,
         win: p.win,
-        cs: p.totalMinionsKilled + p.neutralMinionsKilled,
+        cs,
+        csMin: mins > 0 ? (cs / mins).toFixed(1) : '0',
+        dmg,
+        dpm: mins > 0 ? Math.round(dmg / mins) : 0,
+        vision: p.visionScore,
+        gold: p.goldEarned,
+        mvp: isMVP,
+        multikill: p.largestMultiKill,
         duration: m.info.gameDuration,
         queueId: m.info.queueId,
         gameDate: m.info.gameCreation,
