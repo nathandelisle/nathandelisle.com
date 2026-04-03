@@ -10,17 +10,44 @@ async function riot(url, apiKey) {
   return res.json();
 }
 
-async function riotSafe(url, apiKey, fallback) {
-  try {
-    return await riot(url, apiKey);
-  } catch {
-    return fallback;
-  }
-}
-
 function cleanName(raw) {
   if (!raw) return '';
   return raw.replace(/^(TFT\d+_|Set\d+_|TFT_Augment_|TFT_Item_)/i, '').replace(/_/g, ' ');
+}
+
+// Scrape TFT ranked data from lolchess.gg when Riot TFT API is unavailable
+async function getTFTFromLolchess(gameName, tagLine) {
+  const slug = `${gameName}-${tagLine}`;
+  const res = await fetch(`https://lolchess.gg/profile/na/${encodeURIComponent(slug)}`, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+  });
+  const html = await res.text();
+  const m = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
+  if (!m) return null;
+  const data = JSON.parse(m[1]);
+  const profile = data.props?.pageProps?.dehydratedState?.queries?.[0]?.state?.data;
+  if (!profile) return null;
+
+  const league = (profile.summonerLeagues || []).find(l => l.queue === 'RANKED_TFT');
+  const summoner = profile.summoner || {};
+
+  return {
+    gameName: summoner.gameName || gameName,
+    tagLine: summoner.tagLine || tagLine,
+    profileIconId: parseInt((summoner.profileIconUrl || '').match(/(\d+)\.jpg/)?.[1] || '0'),
+    summonerLevel: summoner.summonerLevel || 0,
+    ranked: league ? {
+      queueType: 'RANKED_TFT',
+      tier: league.tier,
+      rank: league.rank,
+      leaguePoints: league.leaguePoints,
+      wins: league.wins,
+      losses: league.plays - league.wins,
+    } : null,
+    recentMatches: [],
+    totalGames4d: 0,
+    type: 'tft',
+  };
 }
 
 async function getPlayerData(gameName, tagLine, type, apiKey) {
@@ -36,28 +63,38 @@ async function getPlayerData(gameName, tagLine, type, apiKey) {
   const isTFT = type === 'tft';
   const fourDaysAgo = Math.floor(Date.now() / 1000) - 4 * 24 * 60 * 60;
 
+  // Try Riot TFT API first; if 403, fall back to lolchess.gg scraping
+  if (isTFT) {
+    const testRes = await fetch(`${NA1}/tft/league/v1/entries/by-puuid/${account.puuid}`, {
+      headers: { 'X-Riot-Token': apiKey },
+    });
+    if (testRes.status === 403) {
+      const fallback = await getTFTFromLolchess(gameName, tagLine);
+      if (fallback) return fallback;
+    }
+  }
+
   const [ranked, matchIds] = await Promise.all([
     isTFT
-      ? riotSafe(`${NA1}/tft/league/v1/entries/by-puuid/${account.puuid}`, apiKey, [])
+      ? riot(`${NA1}/tft/league/v1/entries/by-puuid/${account.puuid}`, apiKey)
       : riot(`${NA1}/lol/league/v4/entries/by-puuid/${account.puuid}`, apiKey),
     isTFT
-      ? riotSafe(`${AMERICAS}/tft/match/v1/matches/by-puuid/${account.puuid}/ids?startTime=${fourDaysAgo}&count=100`, apiKey, [])
+      ? riot(`${AMERICAS}/tft/match/v1/matches/by-puuid/${account.puuid}/ids?startTime=${fourDaysAgo}&count=100`, apiKey)
       : riot(`${AMERICAS}/lol/match/v5/matches/by-puuid/${account.puuid}/ids?startTime=${fourDaysAgo}&count=100`, apiKey),
   ]);
 
   // Fetch match details in batches of 12, with 1.2s delay between batches
-  // to stay under the 20 req/sec rate limit
   const matches = [];
   for (let i = 0; i < matchIds.length; i += 12) {
     if (i > 0) await new Promise(r => setTimeout(r, 1200));
     const batch = await Promise.all(
       matchIds.slice(i, i + 12).map((id) =>
         isTFT
-          ? riotSafe(`${AMERICAS}/tft/match/v1/matches/${id}`, apiKey, null)
+          ? riot(`${AMERICAS}/tft/match/v1/matches/${id}`, apiKey)
           : riot(`${AMERICAS}/lol/match/v5/matches/${id}`, apiKey)
       )
     );
-    matches.push(...batch.filter(Boolean));
+    matches.push(...batch);
   }
 
   const queueType = isTFT ? 'RANKED_TFT' : 'RANKED_SOLO_5x5';
@@ -94,7 +131,6 @@ async function getPlayerData(gameName, tagLine, type, apiKey) {
       const cs = p.totalMinionsKilled + p.neutralMinionsKilled;
       const dmg = p.totalDamageDealtToChampions;
 
-      // MVP check: best KDA in the game
       const kda = (d) => (d.kills + d.assists) / Math.max(d.deaths, 1);
       const myKDA = kda(p);
       const isMVP = m.info.participants.every((o) => kda(o) <= myKDA);
