@@ -3,20 +3,24 @@ import { useState, useEffect } from 'react';
 const TIERS = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND'];
 const DIVS = ['IV', 'III', 'II', 'I'];
 
-function lpToMaster(tier, rank, lp) {
-  if (['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(tier)) return 0;
+function absLP(tier, rank, lp) {
+  if (['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(tier)) return 2800 + lp;
   const ti = TIERS.indexOf(tier);
   const di = DIVS.indexOf(rank);
   if (ti === -1 || di === -1) return null;
-  return 2800 - (ti * 400 + di * 100 + lp);
+  return ti * 400 + di * 100 + lp;
 }
 
-function pct(tier, rank, lp) {
-  if (['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(tier)) return 100;
-  const ti = TIERS.indexOf(tier);
-  const di = DIVS.indexOf(rank);
-  if (ti === -1 || di === -1) return 0;
-  return ((ti * 400 + di * 100 + lp) / 2800) * 100;
+function lpRemaining(tier, rank, lp, target = 2800) {
+  const abs = absLP(tier, rank, lp);
+  if (abs == null) return null;
+  return Math.max(0, target - abs);
+}
+
+function pct(tier, rank, lp, target = 2800) {
+  const abs = absLP(tier, rank, lp);
+  if (abs == null) return 0;
+  return Math.min(100, (abs / target) * 100);
 }
 
 function timeAgo(ts) {
@@ -63,14 +67,22 @@ function Race() {
   if (error && !data) return <Err error={error} retry={fetchData} />;
   if (!data) return null;
 
-  const { nathan, isaac, ddVersion, since } = data;
-  const nR = nathan.ranked, iR = isaac.ranked;
-  const nLP = nR ? lpToMaster(nR.tier, nR.rank, nR.leaguePoints) : null;
-  const iLP = iR ? lpToMaster(iR.tier, iR.rank, iR.leaguePoints) : null;
-  const nPct = nR ? pct(nR.tier, nR.rank, nR.leaguePoints) : 0;
-  const iPct = iR ? pct(iR.tier, iR.rank, iR.leaguePoints) : 0;
-  const diff = nLP != null && iLP != null ? nLP - iLP : 0;
+  const { nathan, isaac, ciaconna, ddVersion, since } = data;
+  const players = [nathan, isaac, ciaconna].filter(Boolean);
   const days = daysSince(since);
+
+  // Compute per-player stats
+  const stats = players.map(p => {
+    const r = p.ranked;
+    const target = p.target || 2800;
+    return {
+      player: p,
+      lp: r ? lpRemaining(r.tier, r.rank, r.leaguePoints, target) : null,
+      pct: r ? pct(r.tier, r.rank, r.leaguePoints, target) : 0,
+      target,
+    };
+  });
+  const leader = stats.filter(s => s.lp != null).sort((a, b) => a.lp - b.lp)[0];
 
   return (
     <div style={{ minHeight: '100vh', background: '#0d1117', color: '#c9d1d9', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif' }}>
@@ -79,32 +91,33 @@ function Race() {
         <div style={{ marginBottom: '2rem' }}>
           <a href="/" style={{ color: '#8b949e', fontSize: 13, textDecoration: 'none' }}>nathandelisle.com</a>
           <h1 style={{ fontSize: 22, fontWeight: 600, color: '#e6edf3', margin: '0.75rem 0 0.25rem' }}>Race to Master</h1>
-          <p style={{ color: '#8b949e', fontSize: 14, margin: 0 }}>League vs TFT — since {sinceLabel(since)} ({days}d window)</p>
+          <p style={{ color: '#8b949e', fontSize: 14, margin: 0 }}>since {sinceLabel(since)} ({days}d window)</p>
         </div>
 
         {/* Progress */}
         <div style={{ marginBottom: '2rem' }}>
-          <Bar name={nathan.gameName} pct={nPct} lp={nLP} rank={nR} ahead={diff < 0} />
-          <Bar name={isaac.gameName} pct={iPct} lp={iLP} rank={iR} ahead={diff > 0} />
-          {diff !== 0 && (
+          {stats.map((s, i) => (
+            <Bar key={i} name={s.player.gameName} pct={s.pct} lp={s.lp} rank={s.player.ranked}
+              ahead={leader && s.player === leader.player}
+              targetLabel={s.target > 2800 ? `M ${s.target - 2800}LP` : null} />
+          ))}
+          {leader && leader.lp != null && leader.lp > 0 && (
             <p style={{ color: '#8b949e', fontSize: 13, marginTop: 8, textAlign: 'center' }}>
-              {diff < 0 ? nathan.gameName : isaac.gameName} leads by {Math.abs(diff)} LP
+              {leader.player.gameName} leads — {leader.lp} LP remaining
             </p>
           )}
         </div>
 
         {/* LP Graph */}
-        <LPGraph nathan={nathan} isaac={isaac} since={since} />
+        <LPGraph players={players} since={since} />
 
-        {/* Two columns */}
+        {/* Player cards */}
         <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
-          <Card player={nathan} ddVersion={ddVersion} days={days} />
-          <Card player={isaac} ddVersion={ddVersion} days={days} />
+          {players.map((p, i) => <Card key={i} player={p} ddVersion={ddVersion} days={days} />)}
         </div>
 
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          <Games player={nathan} ddVersion={ddVersion} since={since} days={days} />
-          <Games player={isaac} ddVersion={ddVersion} since={since} days={days} />
+          {players.map((p, i) => <Games key={i} player={p} ddVersion={ddVersion} since={since} days={days} />)}
         </div>
 
         <div style={{ textAlign: 'center', marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid #30363d' }}>
@@ -121,7 +134,7 @@ function Race() {
   );
 }
 
-function Bar({ name, pct, lp, rank, ahead }) {
+function Bar({ name, pct, lp, rank, ahead, targetLabel }) {
   const color = rank ? {
     IRON: '#5e5146', BRONZE: '#8c5a2d', SILVER: '#7b8894', GOLD: '#cd8837',
     PLATINUM: '#4e9996', EMERALD: '#0f9b53', DIAMOND: '#576BCE', MASTER: '#9D48E0',
@@ -129,7 +142,10 @@ function Bar({ name, pct, lp, rank, ahead }) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-      <span style={{ width: 80, fontSize: 13, textAlign: 'right', color: ahead ? '#e6edf3' : '#8b949e', fontWeight: ahead ? 600 : 400 }}>{name}</span>
+      <span style={{ width: 90, fontSize: 13, textAlign: 'right', color: ahead ? '#e6edf3' : '#8b949e', fontWeight: ahead ? 600 : 400 }}>
+        {name}
+        {targetLabel && <span style={{ fontSize: 10, color: '#6e7681', display: 'block' }}>{targetLabel}</span>}
+      </span>
       <div style={{ flex: 1, height: 8, background: '#21262d', borderRadius: 4, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: Math.min(pct, 100) + '%', background: color, borderRadius: 4, transition: 'width 0.6s ease' }} />
       </div>
@@ -269,14 +285,12 @@ function TRow({ m }) {
 function estimateLP(player) {
   const r = player.ranked;
   if (!r) return [];
-  const ti = TIERS.indexOf(r.tier);
-  const di = DIVS.indexOf(r.rank);
-  if (ti === -1 || di === -1) return [];
-  const currentAbsLP = ti * 400 + di * 100 + r.leaguePoints;
+  const currentAbs = absLP(r.tier, r.rank, r.leaguePoints);
+  if (currentAbs == null) return [];
   const isTFT = player.type === 'tft';
 
   const ms = [...player.recentMatches].reverse(); // oldest first
-  let lp = currentAbsLP;
+  let lp = currentAbs;
 
   // Undo each game to get starting LP
   for (const m of [...player.recentMatches]) {
@@ -302,17 +316,18 @@ function estimateLP(player) {
     }
     points.push({ t: m.gameDate, lp });
   }
-  points.push({ t: Date.now(), lp: currentAbsLP });
+  points.push({ t: Date.now(), lp: currentAbs });
   return points;
 }
 
-function LPGraph({ nathan, isaac, since }) {
-  const [hover, setHover] = useState(null);
-  const nPts = estimateLP(nathan);
-  const iPts = estimateLP(isaac);
-  if (nPts.length < 2 && iPts.length < 2) return null;
+const PLAYER_COLORS = ['#576BCE', '#3fb950', '#da7b3c'];
 
-  const allLP = [...nPts.map(p => p.lp), ...iPts.map(p => p.lp)];
+function LPGraph({ players, since }) {
+  const [hover, setHover] = useState(null);
+  const allPts = players.map(p => estimateLP(p));
+  if (allPts.every(pts => pts.length < 2)) return null;
+
+  const allLP = allPts.flat().map(p => p.lp);
   const minLP = Math.min(...allLP) - 15;
   const maxLP = Math.max(...allLP) + 15;
   const tMin = since;
@@ -325,7 +340,6 @@ function LPGraph({ nathan, isaac, since }) {
   const toY = lp => PAD_T + gH - ((lp - minLP) / (maxLP - minLP)) * gH;
   const fromX = x => tMin + ((x - PAD_L) / gW) * (tMax - tMin);
 
-  // Step function path: hold LP flat until next game, then jump
   const makePath = (pts) => {
     if (pts.length === 0) return '';
     let d = `M${toX(pts[0].t).toFixed(1)},${toY(pts[0].lp).toFixed(1)}`;
@@ -335,7 +349,6 @@ function LPGraph({ nathan, isaac, since }) {
     return d;
   };
 
-  // Y-axis labels
   const lpRange = maxLP - minLP;
   const step = lpRange > 100 ? 50 : lpRange > 40 ? 20 : 10;
   const ticks = [];
@@ -343,7 +356,6 @@ function LPGraph({ nathan, isaac, since }) {
     ticks.push(v);
   }
 
-  // X-axis date labels
   const dayMs = 86400000;
   const startDay = new Date(tMin);
   startDay.setHours(0, 0, 0, 0);
@@ -352,10 +364,10 @@ function LPGraph({ nathan, isaac, since }) {
     xTicks.push(d);
   }
 
-  const rankLabel = (absLP) => {
-    if (absLP >= 2800) return 'Master';
-    const t = Math.floor(absLP / 400);
-    const d = Math.floor((absLP % 400) / 100);
+  const rankLabel = (val) => {
+    if (val >= 2800) return `M${val - 2800}`;
+    const t = Math.floor(val / 400);
+    const d = Math.floor((val % 400) / 100);
     const tierNames = ['I', 'B', 'S', 'G', 'P', 'E', 'D'];
     const divNames = ['4', '3', '2', '1'];
     return (tierNames[t] || '?') + divNames[d];
@@ -367,7 +379,6 @@ function LPGraph({ nathan, isaac, since }) {
     return months[d.getMonth()] + ' ' + d.getDate();
   };
 
-  // Step function lookup: LP holds at previous game's value
   const lpAt = (pts, t) => {
     if (pts.length === 0) return null;
     if (t <= pts[0].t) return pts[0].lp;
@@ -383,9 +394,8 @@ function LPGraph({ nathan, isaac, since }) {
     const svgX = ((e.clientX - rect.left) / rect.width) * W;
     if (svgX < PAD_L || svgX > W - PAD_R) { setHover(null); return; }
     const t = fromX(svgX);
-    const nLP = nPts.length > 1 ? lpAt(nPts, t) : null;
-    const iLP = iPts.length > 1 ? lpAt(iPts, t) : null;
-    setHover({ x: svgX, t, nLP, iLP });
+    const lpValues = allPts.map(pts => pts.length > 1 ? lpAt(pts, t) : null);
+    setHover({ x: svgX, t, lpValues });
   };
 
   return (
@@ -394,38 +404,34 @@ function LPGraph({ nathan, isaac, since }) {
       <div style={{ position: 'relative' }}>
         <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block', cursor: 'crosshair' }}
           onMouseMove={handleMouse} onMouseLeave={() => setHover(null)}>
-          {/* Grid lines */}
           {ticks.map(v => (
             <g key={v}>
               <line x1={PAD_L} x2={W - PAD_R} y1={toY(v)} y2={toY(v)} stroke="#30363d" strokeWidth="1" />
               <text x={PAD_L - 5} y={toY(v) + 3.5} fill="#8b949e" fontSize="10" textAnchor="end" fontFamily="monospace">{rankLabel(v)}</text>
             </g>
           ))}
-          {/* X-axis date labels */}
           {xTicks.map(t => (
             <g key={t}>
               <line x1={toX(t)} x2={toX(t)} y1={PAD_T} y2={PAD_T + gH} stroke="#30363d" strokeWidth="1" strokeDasharray="3,3" />
               <text x={toX(t)} y={H - 5} fill="#8b949e" fontSize="10" textAnchor="middle" fontFamily="monospace">{dayLabel(t)}</text>
             </g>
           ))}
-          {/* Nathan line */}
-          {nPts.length > 1 && <path d={makePath(nPts)} fill="none" stroke="#576BCE" strokeWidth="2.5" strokeLinejoin="round" />}
-          {/* Isaac line */}
-          {iPts.length > 1 && <path d={makePath(iPts)} fill="none" stroke="#3fb950" strokeWidth="2.5" strokeLinejoin="round" />}
-          {/* Dots at current */}
-          {nPts.length > 0 && <circle cx={toX(nPts[nPts.length-1].t)} cy={toY(nPts[nPts.length-1].lp)} r="4" fill="#576BCE" />}
-          {iPts.length > 0 && <circle cx={toX(iPts[iPts.length-1].t)} cy={toY(iPts[iPts.length-1].lp)} r="4" fill="#3fb950" />}
-          {/* Hover crosshair + dots */}
+          {allPts.map((pts, i) => pts.length > 1 && (
+            <path key={i} d={makePath(pts)} fill="none" stroke={PLAYER_COLORS[i]} strokeWidth="2.5" strokeLinejoin="round" />
+          ))}
+          {allPts.map((pts, i) => pts.length > 0 && (
+            <circle key={i} cx={toX(pts[pts.length-1].t)} cy={toY(pts[pts.length-1].lp)} r="4" fill={PLAYER_COLORS[i]} />
+          ))}
           {hover && (
             <>
               <line x1={hover.x} x2={hover.x} y1={PAD_T} y2={PAD_T + gH} stroke="#6e7681" strokeWidth="1" strokeDasharray="2,2" />
-              {hover.nLP != null && <circle cx={hover.x} cy={toY(hover.nLP)} r="5" fill="#576BCE" stroke="#161b22" strokeWidth="2" />}
-              {hover.iLP != null && <circle cx={hover.x} cy={toY(hover.iLP)} r="5" fill="#3fb950" stroke="#161b22" strokeWidth="2" />}
+              {hover.lpValues.map((lp, i) => lp != null && (
+                <circle key={i} cx={hover.x} cy={toY(lp)} r="5" fill={PLAYER_COLORS[i]} stroke="#161b22" strokeWidth="2" />
+              ))}
             </>
           )}
         </svg>
-        {/* Hover tooltip */}
-        {hover && (hover.nLP != null || hover.iLP != null) && (
+        {hover && hover.lpValues.some(v => v != null) && (
           <div style={{
             position: 'absolute', top: 6,
             left: hover.x > W / 2 ? undefined : `${(hover.x / W) * 100}%`,
@@ -434,14 +440,16 @@ function LPGraph({ nathan, isaac, since }) {
             padding: '6px 10px', fontSize: 12, pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 10,
           }}>
             <div style={{ color: '#8b949e', marginBottom: 3 }}>{dayLabel(hover.t)} {new Date(hover.t).getHours()}:{String(new Date(hover.t).getMinutes()).padStart(2, '0')}</div>
-            {hover.nLP != null && <div style={{ color: '#576BCE' }}>{nathan.gameName}: {rankLabel(hover.nLP)} ({hover.nLP % 100} LP)</div>}
-            {hover.iLP != null && <div style={{ color: '#3fb950' }}>{isaac.gameName}: {rankLabel(hover.iLP)} ({hover.iLP % 100} LP)</div>}
+            {hover.lpValues.map((lp, i) => lp != null && (
+              <div key={i} style={{ color: PLAYER_COLORS[i] }}>{players[i].gameName}: {rankLabel(lp)} ({lp % 100} LP)</div>
+            ))}
           </div>
         )}
       </div>
       <div style={{ display: 'flex', gap: 16, justifyContent: 'center', fontSize: 12, marginTop: 6 }}>
-        <span><span style={{ color: '#576BCE' }}>—</span> <span style={{ color: '#8b949e' }}>{nathan.gameName}</span></span>
-        <span><span style={{ color: '#3fb950' }}>—</span> <span style={{ color: '#8b949e' }}>{isaac.gameName}</span></span>
+        {players.map((p, i) => (
+          <span key={i}><span style={{ color: PLAYER_COLORS[i] }}>--</span> <span style={{ color: '#8b949e' }}>{p.gameName}</span></span>
+        ))}
       </div>
     </div>
   );

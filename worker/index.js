@@ -10,6 +10,14 @@ async function riot(url, apiKey) {
   return res.json();
 }
 
+async function riotSafe(url, apiKey, fallback) {
+  try {
+    return await riot(url, apiKey);
+  } catch {
+    return fallback;
+  }
+}
+
 function cleanName(raw) {
   if (!raw) return '';
   return raw.replace(/^(TFT\d+_|Set\d+_|TFT_Augment_|TFT_Item_)/i, '').replace(/_/g, ' ');
@@ -30,10 +38,10 @@ async function getPlayerData(gameName, tagLine, type, apiKey) {
 
   const [ranked, matchIds] = await Promise.all([
     isTFT
-      ? riot(`${NA1}/tft/league/v1/by-puuid/${account.puuid}`, apiKey)
+      ? riotSafe(`${NA1}/tft/league/v1/entries/by-puuid/${account.puuid}`, apiKey, [])
       : riot(`${NA1}/lol/league/v4/entries/by-puuid/${account.puuid}`, apiKey),
     isTFT
-      ? riot(`${AMERICAS}/tft/match/v1/matches/by-puuid/${account.puuid}/ids?startTime=${fourDaysAgo}&count=100`, apiKey)
+      ? riotSafe(`${AMERICAS}/tft/match/v1/matches/by-puuid/${account.puuid}/ids?startTime=${fourDaysAgo}&count=100`, apiKey, [])
       : riot(`${AMERICAS}/lol/match/v5/matches/by-puuid/${account.puuid}/ids?startTime=${fourDaysAgo}&count=100`, apiKey),
   ]);
 
@@ -45,11 +53,11 @@ async function getPlayerData(gameName, tagLine, type, apiKey) {
     const batch = await Promise.all(
       matchIds.slice(i, i + 12).map((id) =>
         isTFT
-          ? riot(`${AMERICAS}/tft/match/v1/matches/${id}`, apiKey)
+          ? riotSafe(`${AMERICAS}/tft/match/v1/matches/${id}`, apiKey, null)
           : riot(`${AMERICAS}/lol/match/v5/matches/${id}`, apiKey)
       )
     );
-    matches.push(...batch);
+    matches.push(...batch.filter(Boolean));
   }
 
   const queueType = isTFT ? 'RANKED_TFT' : 'RANKED_SOLO_5x5';
@@ -152,9 +160,16 @@ export default {
       const nathan = await getPlayerData('who am i', 'idrk', 'league', env.RIOT_API_KEY);
       await new Promise(r => setTimeout(r, 1200));
       const isaac = await getPlayerData('Sotatsu', 'sheep', 'tft', env.RIOT_API_KEY);
+      await new Promise(r => setTimeout(r, 1200));
+      const ciaconna = await getPlayerData('Ciaconna', '5171', 'league', env.RIOT_API_KEY);
+
+      // Per-player targets (absolute LP): Master 0LP = 2800, Master 100LP = 2900
+      nathan.target = 2800;
+      isaac.target = 2800;
+      ciaconna.target = 2900;
 
       const sinceEpoch = Math.floor(Date.now() / 1000) - 4 * 24 * 60 * 60;
-      return new Response(JSON.stringify({ nathan, isaac, ddVersion: versions[0], since: sinceEpoch * 1000 }), {
+      return new Response(JSON.stringify({ nathan, isaac, ciaconna, ddVersion: versions[0], since: sinceEpoch * 1000 }), {
         headers: CORS_HEADERS,
       });
     } catch (err) {
