@@ -1,35 +1,4 @@
-import { useState, useEffect } from 'react';
-
 function App() {
-  const [cfData, setCfData] = useState(null);
-
-  useEffect(() => {
-    fetch('https://codeforces.com/api/user.info?handles=ndelisle')
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === 'OK') setCfData(data.result[0]);
-      })
-      .catch(() => {});
-  }, []);
-
-  const getRankColor = (rank) => {
-    const colors = {
-      'newbie': '#808080',
-      'pupil': '#008000',
-      'specialist': '#03a89e',
-      'expert': '#0000ff',
-      'candidate master': '#aa00aa',
-      'master': '#ff8c00',
-      'grandmaster': '#ff0000',
-    };
-    return colors[rank?.toLowerCase()] || '#666';
-  };
-
-  const formatRank = (rank) => {
-    if (!rank) return '';
-    return rank.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-  };
-
   const readings = [
     { title: "In Solidarity with Library Genesis and Sci-Hub", url: "https://custodians.online/" },
     { title: "Sticks — George Saunders", url: "https://www.unm.edu/~gmartin/535/Sticks.htm" },
@@ -137,14 +106,6 @@ function App() {
           </div>
           <div style={styles.linksRow}>
             <a href="mailto:ndelisle@uchicago.edu" style={styles.socialLink}>Email</a>
-            <span style={styles.dot}>·</span>
-            {cfData ? (
-              <a href="https://codeforces.com/profile/ndelisle" target="_blank" rel="noopener noreferrer" style={styles.socialLink}>
-                Codeforces <span style={{ color: getRankColor(cfData.rank) }}>({cfData.rating}, {formatRank(cfData.rank)})</span>
-              </a>
-            ) : (
-              <a href="https://codeforces.com/profile/ndelisle" target="_blank" rel="noopener noreferrer" style={styles.socialLink}>Codeforces</a>
-            )}
             <span style={styles.dot}>·</span>
             <a href="https://x.com/delisl3" target="_blank" rel="noopener noreferrer" style={styles.socialLink}>X</a>
             <span style={styles.dot}>·</span>
