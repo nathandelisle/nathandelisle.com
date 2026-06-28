@@ -2,7 +2,6 @@ function App() {
   const readings = [
     { title: "In Solidarity with Library Genesis and Sci-Hub", url: "https://custodians.online/" },
     { title: "Sticks — George Saunders", url: "https://www.unm.edu/~gmartin/535/Sticks.htm" },
-    { title: "The Street Window — Franz Kafka", url: "http://franzkafkastories.com/shortStories.php?story_id=kafka_the_street_window" },
   ];
 
   const styles = {
@@ -80,7 +79,7 @@ function App() {
           <h1 style={styles.name}>Nathan Delisle</h1>
           <div style={styles.bio}>
             <p style={styles.bioP}>
-              I am a third year at the University of Chicago studying Computer Science and Statistics.
+              I am a senior at the University of Chicago studying Computer Science and Statistics.
             </p>
             <p style={styles.bioP}>
               I am currently in the{' '}
@@ -98,7 +97,7 @@ function App() {
               <a href="https://www.matsprogram.org/" target="_blank" rel="noopener noreferrer" style={styles.link}>
                 MATS 8.0
               </a>
-              {' '}scholar working on agentic misalignment in code generation with Steven Adler and Girish Sastry.
+              {' '}scholar under Steven Adler and Girish Sastry. This summer, I am at Evercore building LLM evaluations for investment banking.
             </p>
             <p style={styles.bioP}>
               I am most interested in deep causal explanations for emergent phenomena, especially in AI, often using mathematics.
