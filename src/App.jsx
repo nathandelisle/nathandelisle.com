@@ -99,9 +99,6 @@ function App() {
               </a>
               {' '}scholar under Steven Adler and Girish Sastry. This summer, I am at Evercore building LLM evaluations for investment banking.
             </p>
-            <p style={styles.bioP}>
-              I am most interested in deep causal explanations for emergent phenomena, especially in AI, often using mathematics.
-            </p>
           </div>
           <div style={styles.linksRow}>
             <a href="mailto:ndelisle@uchicago.edu" style={styles.socialLink}>Email</a>
