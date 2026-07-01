@@ -4,7 +4,7 @@ import { ConvexHull } from 'three/addons/math/ConvexHull.js';
 
 const DATA = window.SCENARIO_DATA;
 const API = new URLSearchParams(location.search).get('api')
-  || 'https://geometric-uncertainty.nathandelisle.workers.dev';
+  || 'https://geometric-uncertainty.ndelisle.workers.dev';
 
 const COL = {
   correct: 0x2F7A4D, wrong: 0xB3432B, neutral: 0x5B6B7A,
