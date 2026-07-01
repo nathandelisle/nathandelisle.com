@@ -46,7 +46,7 @@
   h1 {
     font-family: var(--serif);
     font-weight: 500;
-    font-size: 27px;
+    font-size: 25px;
     letter-spacing: 0.01em;
     white-space: nowrap;
   }
@@ -54,11 +54,12 @@
   #meta a { color: inherit; }
   #intro {
     font-family: var(--serif);
-    font-size: 16.5px;
-    max-width: 74ch;
+    font-size: 16px;
+    max-width: 76ch;
     color: #3A372E;
     margin-top: 10px;
   }
+  #intro p + p { margin-top: 5px; }
   #intro em { font-style: italic; }
 
   /* ---- main ---- */
@@ -169,7 +170,14 @@
   #tip .v.no { color: var(--red); }
 
   footer {
-    padding-top: 10px; font-size: 11.5px; color: var(--faint); max-width: 118ch;
+    padding-top: 10px; font-size: 11.5px; color: var(--faint);
+  }
+  footer a { color: inherit; }
+
+  @media (max-height: 840px) {
+    body { overflow-y: auto; }
+    #frame { height: auto; min-height: 100vh; }
+    #stage { min-height: 520px; }
   }
 </style>
 </head>
@@ -177,14 +185,12 @@
 <div id="frame">
   <header>
     <div>
-      <h1>Geometric Uncertainty</h1>
-      <p id="intro">
-        Ask a model the same question thirty times and look at the <em>shape</em> its answers make in
-        semantic space. When it knows, the answers collapse to a point. When it guesses, they scatter
-        into a cloud with measurable volume — a hallucination flag that needs no ground truth, only the
-        model’s disagreement with itself. The catch is scenario 3: a model that is
-        <em>consistently wrong</em> collapses too. Volume detects confusion, not falsehood.
-      </p>
+      <h1>Geometric Uncertainty for Outlier Detection</h1>
+      <div id="intro">
+        <p>Ask a model the same question thirty times, and look at the <em>shape</em> its answers make in semantic space.</p>
+        <p>When it knows, the answers have low volume. When it hallucinates, they scatter into a cloud with greater volume.</p>
+        <p>This flags unreliable answers with no ground truth needed — but it fails for <em>confident, consistent</em> hallucinations.</p>
+      </div>
     </div>
     <div id="meta">Llama&nbsp;3.1&nbsp;8B&nbsp;&middot;&nbsp;30 samples per question&nbsp;&middot;&nbsp;<a href="https://arxiv.org/abs/2509.13813">arXiv:2509.13813</a></div>
   </header>
@@ -210,19 +216,17 @@
       <div id="tline"></div>
       <div id="canvasWrap"></div>
       <div id="legend">
+        each point is one answer &nbsp;&nbsp;&middot;&nbsp;&nbsp;
         <span class="dot g"></span> correct &nbsp;&nbsp; <span class="dot r"></span> wrong &nbsp;&nbsp;
         <span class="dot o"></span> the answer you’d actually get (temperature 0)
-        &nbsp;&nbsp;&middot;&nbsp;&nbsp; point size = how often &nbsp;&nbsp;&middot;&nbsp;&nbsp; hover any point, drag to turn
+        &nbsp;&nbsp;&middot;&nbsp;&nbsp; hover any point, drag to turn
       </div>
     </section>
   </main>
 
   <footer>
-    Real, cached outputs of Llama&nbsp;3.1&nbsp;8B (temperature 1, plus its temperature-0 answer, ringed) — no curation.
-    Pipeline, after Phillips&nbsp;&amp;&nbsp;Wu et&nbsp;al.: embed the 31 answers, PCA to 15 dimensions, fit 16 archetypes; volume is the
-    15th root of the archetype simplex volume, shown linearly — no logarithms. Suspicion, on hover, rank-combines local density,
-    distance from consensus, and archetype rarity: the paper’s per-answer hallucination score. The view is the first three
-    principal directions of the same geometry.
+    All answers are real Llama&nbsp;3.1&nbsp;8B outputs, uncurated; method from
+    <a href="https://arxiv.org/abs/2509.13813">arXiv:2509.13813</a>.
   </footer>
 </div>
 
