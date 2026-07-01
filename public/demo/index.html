@@ -35,8 +35,8 @@
   #frame {
     height: 100vh;
     display: grid;
-    grid-template-rows: auto 1fr auto;
-    padding: 28px 44px 18px;
+    grid-template-rows: auto 1fr;
+    padding: 26px 44px 16px;
     max-width: 1680px;
     margin: 0 auto;
   }
@@ -134,7 +134,7 @@
   /* stage */
   #stage { position: relative; min-height: 0; display: flex; flex-direction: column; }
   #qline {
-    text-align: center; font-family: var(--serif); font-size: 19px; font-style: italic;
+    text-align: center; font-family: var(--serif); font-size: 19px;
     color: #33302A;
   }
   #tline { text-align: center; font-size: 12.5px; color: var(--muted); margin-top: 2px; min-height: 18px; }
@@ -169,15 +169,12 @@
   #tip .v.ok { color: var(--green); }
   #tip .v.no { color: var(--red); }
 
-  footer {
-    padding-top: 10px; font-size: 11.5px; color: var(--faint);
-  }
-  footer a { color: inherit; }
-
-  @media (max-height: 840px) {
-    body { overflow-y: auto; }
-    #frame { height: auto; min-height: 100vh; }
-    #stage { min-height: 520px; }
+  @media (max-height: 800px) {
+    #intro { font-size: 14.5px; margin-top: 7px; }
+    #intro p + p { margin-top: 3px; }
+    h1 { font-size: 22px; }
+    main { margin-top: 14px; }
+    .scenario { padding: 10px 0 9px; }
   }
 </style>
 </head>
@@ -187,9 +184,10 @@
     <div>
       <h1>Geometric Uncertainty for Outlier Detection</h1>
       <div id="intro">
-        <p>Ask a model the same question thirty times, and look at the <em>shape</em> its answers make in semantic space.</p>
-        <p>When it knows, the answers have low volume. When it hallucinates, they scatter into a cloud with greater volume.</p>
-        <p>This flags unreliable answers with no ground truth needed — but it fails for <em>confident, consistent</em> hallucinations.</p>
+        <p>Ask a model the same question thirty times, and look at the shape its answers make in semantic space.</p>
+        <p>When the model knows the answer, the answers have low volume.</p>
+        <p>When the model hallucinates, the answers have high volume.</p>
+        <p>This flags traditional hallucinations, but fails for confident hallucinations.</p>
       </div>
     </div>
     <div id="meta">Llama&nbsp;3.1&nbsp;8B&nbsp;&middot;&nbsp;30 samples per question&nbsp;&middot;&nbsp;<a href="https://arxiv.org/abs/2509.13813">arXiv:2509.13813</a></div>
@@ -207,7 +205,6 @@
       <div id="volumes">
         <h2>Volume</h2>
         <div id="vrows"></div>
-        <p id="volnote">A product of spreads across 15 semantic directions — a few stray answers barely register; genuine dispersion does.</p>
       </div>
     </nav>
 
@@ -216,7 +213,6 @@
       <div id="tline"></div>
       <div id="canvasWrap"></div>
       <div id="legend">
-        each point is one answer &nbsp;&nbsp;&middot;&nbsp;&nbsp;
         <span class="dot g"></span> correct &nbsp;&nbsp; <span class="dot r"></span> wrong &nbsp;&nbsp;
         <span class="dot o"></span> the answer you’d actually get (temperature 0)
         &nbsp;&nbsp;&middot;&nbsp;&nbsp; hover any point, drag to turn
@@ -224,10 +220,6 @@
     </section>
   </main>
 
-  <footer>
-    All answers are real Llama&nbsp;3.1&nbsp;8B outputs, uncurated; method from
-    <a href="https://arxiv.org/abs/2509.13813">arXiv:2509.13813</a>.
-  </footer>
 </div>
 
 <div id="tip"></div>

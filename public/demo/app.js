@@ -7,7 +7,7 @@ const API = new URLSearchParams(location.search).get('api')
   || 'https://geometric-uncertainty.ndelisle.workers.dev';
 
 const COL = {
-  correct: 0x2F7A4D, wrong: 0xB3432B, neutral: 0x5B6B7A,
+  correct: 0x2F7A4D, wrong: 0xB3432B, neutral: 0x8A8578,
   hull: 0x51677D, frame: 0xCFCABB, label: 0xA19B8B,
 };
 
@@ -42,11 +42,8 @@ scene.add(sun);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.06;
-controls.autoRotate = true;
-controls.autoRotateSpeed = 0.5;
 controls.minDistance = 1.2;
 controls.maxDistance = 9;
-controls.addEventListener('start', () => { controls.autoRotate = false; });
 
 // ---------- fixed reference frame: floor grid + axis triad --------------------
 
@@ -377,7 +374,6 @@ function select(id) {
     if (sc) renderScenario(sc);
   }
   renderVolumes();
-  controls.autoRotate = true;
 }
 
 // ---------- live questions ------------------------------------------------------
