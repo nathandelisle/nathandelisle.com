@@ -35,7 +35,7 @@ async function openrouter(key, question, temperature, n) {
   if (n > 1) body.n = n;
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${key.trim()}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   const data = await res.json();
@@ -53,6 +53,9 @@ export default {
       return new Response(JSON.stringify({ error: 'POST /sample' }), { status: 404, headers });
     }
     try {
+      if (!env.OPENROUTER_API_KEY) {
+        return new Response(JSON.stringify({ error: 'key not configured' }), { status: 500, headers });
+      }
       const { question } = await request.json();
       if (typeof question !== 'string' || question.trim().length < 4 || question.length > 200) {
         return new Response(JSON.stringify({ error: 'question must be 4–200 characters' }),
