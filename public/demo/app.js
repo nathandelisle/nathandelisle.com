@@ -7,8 +7,8 @@ const API = new URLSearchParams(location.search).get('api')
   || 'https://geometric-uncertainty.ndelisle.workers.dev';
 
 const COL = {
-  correct: 0x2F7A4D, wrong: 0xB3432B, neutral: 0x8A8578,
-  hull: 0x51677D, frame: 0xCFCABB, label: 0xA19B8B,
+  correct: 0x2F7A4D, wrong: 0xB3432B, neutral: 0x808080,
+  hull: 0x51677D, frame: 0xD0D3D8, label: 0x9AA0A6,
 };
 
 // ---------- formatting -------------------------------------------------------
@@ -34,7 +34,7 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(42, 1, 0.01, 100);
 camera.position.set(2.15, 1.35, 2.5);
 
-scene.add(new THREE.HemisphereLight(0xffffff, 0xd8d4c8, 1.35));
+scene.add(new THREE.HemisphereLight(0xffffff, 0xe8eaed, 1.35));
 const sun = new THREE.DirectionalLight(0xffffff, 1.1);
 sun.position.set(3, 5, 4);
 scene.add(sun);
@@ -52,7 +52,7 @@ function textSprite(text) {
   c.width = 128; c.height = 48;
   const g = c.getContext('2d');
   g.font = '500 26px "IBM Plex Mono", monospace';
-  g.fillStyle = '#A19B8B';
+  g.fillStyle = '#9AA0A6';
   g.textAlign = 'center';
   g.textBaseline = 'middle';
   g.fillText(text, 64, 24);
@@ -67,7 +67,7 @@ function buildFrame() {
   const f = new THREE.Group();
   const Y = -1.3, S = 1.55;
 
-  const grid = new THREE.GridHelper(2 * S, 8, 0xE3E0D4, 0xEAE7DC);
+  const grid = new THREE.GridHelper(2 * S, 8, 0xE3E6EA, 0xEDEFF2);
   grid.position.y = Y;
   f.add(grid);
 
@@ -257,7 +257,7 @@ function renderScenario(sc, live = false) {
   document.getElementById('qline').textContent = sc.question;
   const tline = document.getElementById('tline');
   if (live) {
-    tline.innerHTML = 'live sample — correctness not graded, geometry only';
+    tline.innerHTML = 'live sample — correctness not graded';
   } else {
     tline.innerHTML = `correct answer: <span class="truth">${sc.truth}</span>`;
   }
@@ -344,8 +344,7 @@ function buildRail() {
     b.id = 'btn-' + sc.id;
     b.innerHTML = `
       <span class="num">${i + 1}</span><span class="label">${sc.label}</span>
-      <div class="q">${sc.question}</div>
-      ${sc.caption ? `<div class="caption">${sc.caption}</div>` : ''}`;
+      <div class="q">${sc.question}</div>`;
     b.addEventListener('click', () => select(sc.id));
     scenariosEl.appendChild(b);
   });
