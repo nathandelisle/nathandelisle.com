@@ -17,7 +17,7 @@ function cors(origin) {
   return {
     'Access-Control-Allow-Origin': ALLOWED_ORIGINS.has(origin) ? origin : 'https://nathandelisle.com',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, x-demo-pass',
     'Content-Type': 'application/json',
   };
 }
@@ -51,6 +51,9 @@ export default {
     const url = new URL(request.url);
     if (request.method !== 'POST' || url.pathname !== '/sample') {
       return new Response(JSON.stringify({ error: 'POST /sample' }), { status: 404, headers });
+    }
+    if (request.headers.get('x-demo-pass') !== 'ada_332') {
+      return new Response(JSON.stringify({ error: 'incorrect password' }), { status: 401, headers });
     }
     try {
       if (!env.OPENROUTER_API_KEY) {

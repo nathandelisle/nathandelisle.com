@@ -6,6 +6,29 @@ const DATA = window.SCENARIO_DATA;
 const API = new URLSearchParams(location.search).get('api')
   || 'https://geometric-uncertainty.ndelisle.workers.dev';
 
+// ---------- password gate ------------------------------------------------------
+
+const PASS = 'ada_332';
+{
+  const gate = document.getElementById('gate');
+  const gp = document.getElementById('gatepass');
+  if (sessionStorage.getItem('gu_unlocked') === '1') {
+    gate.remove();
+  } else {
+    gp.focus();
+    gp.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      if (gp.value === PASS) {
+        sessionStorage.setItem('gu_unlocked', '1');
+        gate.remove();
+      } else {
+        document.getElementById('gateerr').textContent = 'incorrect password';
+        gp.value = '';
+      }
+    });
+  }
+}
+
 const COL = {
   correct: 0x2F7A4D, wrong: 0xB3432B, neutral: 0x808080,
   hull: 0x51677D, frame: 0xD0D3D8, label: 0x9AA0A6,
@@ -387,8 +410,15 @@ function setStatus(msg, err = false) {
   statusEl.className = err ? 'err' : '';
 }
 
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = input.scrollHeight + 'px';
+});
+
 input.addEventListener('keydown', async ev => {
-  if (ev.key !== 'Enter' || busy) return;
+  if (ev.key !== 'Enter' || ev.shiftKey) return;
+  ev.preventDefault();
+  if (busy) return;
   const question = input.value.trim();
   if (question.length < 4) return;
   busy = true;
@@ -396,7 +426,7 @@ input.addEventListener('keydown', async ev => {
     setStatus('sampling the model 30 times…');
     const res = await fetch(API + '/sample', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-demo-pass': PASS },
       body: JSON.stringify({ question }),
     });
     if (!res.ok) throw new Error('sampling failed (' + res.status + ')');
