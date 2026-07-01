@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Geometric Uncertainty</title>
+<meta name="description" content="Watching a language model agree — or fail to agree — with itself. After arXiv:2509.13813.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #FBFAF7;
+    --ink: #1C1A15;
+    --muted: #7C776B;
+    --faint: #B9B4A6;
+    --hairline: #E4E1D8;
+    --green: #2F7A4D;
+    --red: #B3432B;
+    --neutral: #55524A;
+    --serif: "Newsreader", Georgia, serif;
+    --sans: "Inter", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.55;
+    overflow: hidden;
+  }
+  #frame {
+    height: 100vh;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    padding: 28px 44px 18px;
+    max-width: 1680px;
+    margin: 0 auto;
+  }
+
+  /* ---- header ---- */
+  header { display: flex; align-items: baseline; justify-content: space-between; }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 27px;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+  }
+  #meta { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+  #meta a { color: inherit; }
+  #intro {
+    font-family: var(--serif);
+    font-size: 16.5px;
+    max-width: 74ch;
+    color: #3A372E;
+    margin-top: 10px;
+  }
+  #intro em { font-style: italic; }
+
+  /* ---- main ---- */
+  main {
+    display: grid;
+    grid-template-columns: 305px 1fr;
+    gap: 40px;
+    min-height: 0;
+    margin-top: 22px;
+  }
+
+  /* left rail */
+  #rail { display: flex; flex-direction: column; min-height: 0; padding-top: 6px; }
+  .scenario {
+    display: block; width: 100%; text-align: left;
+    background: none; border: 0; padding: 13px 0 12px;
+    border-top: 1px solid var(--hairline);
+    cursor: pointer; color: inherit; font: inherit;
+  }
+  .scenario:focus-visible { outline: 1px dotted var(--muted); outline-offset: 4px; }
+  .scenario .num {
+    font-family: var(--mono); font-size: 11px; color: var(--faint);
+    letter-spacing: 0.08em;
+  }
+  .scenario .label {
+    font-family: var(--serif); font-size: 17px; font-weight: 400;
+    margin-left: 8px; color: var(--muted);
+  }
+  .scenario .q { margin-top: 2px; font-size: 12.5px; color: var(--muted); }
+  .scenario .caption {
+    display: none; margin-top: 6px; font-size: 12.5px; color: var(--muted);
+    max-width: 40ch;
+  }
+  .scenario.active .label { color: var(--ink); }
+  .scenario.active .q { color: #4A463C; }
+  .scenario.active .caption { display: block; }
+
+  /* ask */
+  #ask { border-top: 1px solid var(--hairline); padding: 13px 0 10px; }
+  #ask .num { font-family: var(--mono); font-size: 11px; color: var(--faint); letter-spacing: 0.08em; }
+  #ask .label { font-family: var(--serif); font-size: 17px; margin-left: 8px; color: var(--muted); }
+  #ask.active .label { color: var(--ink); }
+  #ask input {
+    width: 100%; margin-top: 8px; padding: 5px 0;
+    border: 0; border-bottom: 1px solid var(--faint);
+    background: none; font: 13px var(--sans); color: var(--ink);
+  }
+  #ask input:focus { outline: none; border-bottom-color: var(--ink); }
+  #ask input::placeholder { color: var(--faint); }
+  #status { margin-top: 7px; font-family: var(--mono); font-size: 11.5px; color: var(--muted); min-height: 17px; }
+  #status.err { color: var(--red); }
+
+  /* volume block */
+  #volumes { margin-top: auto; padding-top: 18px; }
+  #volumes h2 {
+    font-family: var(--mono); font-weight: 500; font-size: 11px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .vrow { display: grid; grid-template-columns: 14px 1fr auto; gap: 10px; align-items: center; padding: 3.5px 0; }
+  .vrow .vnum { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+  .vrow .vbar { height: 3px; background: var(--hairline); position: relative; border-radius: 2px; }
+  .vrow .vbar i {
+    position: absolute; inset: 0 auto 0 0; min-width: 2px; border-radius: 2px;
+    background: var(--faint); display: block;
+  }
+  .vrow.active .vbar i { background: var(--ink); }
+  .vrow .vval { font-family: var(--mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+  .vrow.active .vval { color: var(--ink); }
+  #volnote { margin-top: 9px; font-size: 11.5px; color: var(--faint); max-width: 38ch; }
+
+  /* stage */
+  #stage { position: relative; min-height: 0; display: flex; flex-direction: column; }
+  #qline {
+    text-align: center; font-family: var(--serif); font-size: 19px; font-style: italic;
+    color: #33302A;
+  }
+  #tline { text-align: center; font-size: 12.5px; color: var(--muted); margin-top: 2px; min-height: 18px; }
+  #tline .truth { color: var(--ink); }
+  #canvasWrap { position: relative; flex: 1; min-height: 0; }
+  #canvasWrap::before {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(ellipse 62% 58% at 50% 47%, #F3F0E7 0%, rgba(243,240,231,0) 70%);
+    pointer-events: none;
+  }
+  canvas { display: block; position: absolute; inset: 0; }
+  #legend {
+    text-align: center; font-size: 12px; color: var(--muted); padding-top: 4px;
+  }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: -1px; }
+  .dot.g { background: var(--green); }
+  .dot.r { background: var(--red); }
+  .dot.o { background: none; border: 1.5px solid var(--ink); }
+
+  /* tooltip */
+  #tip {
+    position: fixed; z-index: 10; pointer-events: none; display: none;
+    max-width: 300px; padding: 10px 13px 9px;
+    background: rgba(252, 251, 248, 0.97);
+    border: 1px solid var(--hairline);
+    box-shadow: 0 2px 14px rgba(40, 36, 25, 0.07);
+    border-radius: 3px;
+  }
+  #tip .a { font-family: var(--serif); font-size: 15px; line-height: 1.35; }
+  #tip .m { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 5px; }
+  #tip .v { font-size: 12px; margin-top: 3px; }
+  #tip .v.ok { color: var(--green); }
+  #tip .v.no { color: var(--red); }
+
+  footer {
+    padding-top: 10px; font-size: 11.5px; color: var(--faint); max-width: 118ch;
+  }
+</style>
+</head>
+<body>
+<div id="frame">
+  <header>
+    <div>
+      <h1>Geometric Uncertainty</h1>
+      <p id="intro">
+        Ask a model the same question thirty times and look at the <em>shape</em> its answers make in
+        semantic space. When it knows, the answers collapse to a point. When it guesses, they scatter
+        into a cloud with measurable volume — a hallucination flag that needs no ground truth, only the
+        model’s disagreement with itself. The catch is scenario 3: a model that is
+        <em>consistently wrong</em> collapses too. Volume detects confusion, not falsehood.
+      </p>
+    </div>
+    <div id="meta">Llama&nbsp;3.1&nbsp;8B&nbsp;&middot;&nbsp;30 samples per question&nbsp;&middot;&nbsp;<a href="https://arxiv.org/abs/2509.13813">arXiv:2509.13813</a></div>
+  </header>
+
+  <main>
+    <nav id="rail">
+      <div id="scenarios"></div>
+      <div id="ask">
+        <span class="num">4</span><span class="label">Ask your own</span>
+        <input id="q" type="text" maxlength="200" autocomplete="off"
+               placeholder="e.g. The mother of which Monkee invented Liquid Paper?">
+        <div id="status"></div>
+      </div>
+      <div id="volumes">
+        <h2>Volume</h2>
+        <div id="vrows"></div>
+        <p id="volnote">A product of spreads across 15 semantic directions — a few stray answers barely register; genuine dispersion does.</p>
+      </div>
+    </nav>
+
+    <section id="stage">
+      <div id="qline"></div>
+      <div id="tline"></div>
+      <div id="canvasWrap"></div>
+      <div id="legend">
+        <span class="dot g"></span> correct &nbsp;&nbsp; <span class="dot r"></span> wrong &nbsp;&nbsp;
+        <span class="dot o"></span> the answer you’d actually get (temperature 0)
+        &nbsp;&nbsp;&middot;&nbsp;&nbsp; point size = how often &nbsp;&nbsp;&middot;&nbsp;&nbsp; hover any point, drag to turn
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Real, cached outputs of Llama&nbsp;3.1&nbsp;8B (temperature 1, plus its temperature-0 answer, ringed) — no curation.
+    Pipeline, after Phillips&nbsp;&amp;&nbsp;Wu et&nbsp;al.: embed the 31 answers, PCA to 15 dimensions, fit 16 archetypes; volume is the
+    15th root of the archetype simplex volume, shown linearly — no logarithms. Suspicion, on hover, rank-combines local density,
+    distance from consensus, and archetype rarity: the paper’s per-answer hallucination score. The view is the first three
+    principal directions of the same geometry.
+  </footer>
+</div>
+
+<div id="tip"></div>
+
+<script src="scenario_data.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three.module.js",
+    "three/addons/controls/OrbitControls.js": "./vendor/OrbitControls.js",
+    "three/addons/math/ConvexHull.js": "./vendor/ConvexHull.js"
+  }
+}
+</script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
