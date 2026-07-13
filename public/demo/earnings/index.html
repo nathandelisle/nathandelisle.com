@@ -1,0 +1,176 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Open-Weights Model Benchmark · Earnings-Call Scoring</title>
+<style>
+ body{margin:0;font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#111;background:#fff}
+ .wrap{max-width:860px;margin:0 auto;padding:34px 22px 80px}
+ h1{font-size:24px;margin:0 0 14px;font-weight:650}
+ h2{font-size:17px;margin:28px 0 8px;font-weight:650}
+ h3{font-size:14.5px;margin:20px 0 6px;font-weight:650}
+ p{margin:8px 0}
+ nav{display:flex;gap:2px;border-bottom:1px solid #ccc;margin:14px 0 22px}
+ nav button{border:0;background:none;padding:9px 14px;font:600 14px system-ui;color:#555;cursor:pointer;border-bottom:2px solid transparent}
+ nav button.on{color:#111;border-bottom-color:#111}
+ table{border-collapse:collapse;width:100%;font-size:13.5px;margin:10px 0}
+ th,td{border:1px solid #ddd;padding:6px 9px;text-align:left}
+ th{background:#f6f6f6;font-weight:600}
+ tbody tr:nth-child(odd){background:#fbfbfb}
+ tbody tr:hover{background:#eef4fa}
+ .ci{color:#777;font-size:12px;font-weight:400}
+ pre{background:#f6f6f6;border:1px solid #e2e2e2;padding:12px;font:12.5px/1.5 ui-monospace,Consolas,monospace;white-space:pre-wrap;overflow-x:auto}
+ code{background:#f2f2f2;padding:1px 4px;font:12.5px ui-monospace,Consolas,monospace}
+ .fn{font-size:12.5px;color:#555;border-top:1px solid #ddd;margin-top:26px;padding-top:8px}
+ .tab{display:none} .tab.on{display:block}
+ svg rect:hover{opacity:.75}
+ .kv td:first-child{width:230px;color:#444}
+ .crumb{font:11px ui-monospace,Consolas,monospace;letter-spacing:.08em;margin-bottom:14px}
+ .crumb a{color:#9AA0A6;text-decoration:none}
+ .crumb a:hover{color:#111}
+ #gate{position:fixed;inset:0;z-index:100;background:#fff;display:flex;align-items:center;justify-content:center}
+ #gatebox{width:280px}
+ #gatelabel{font:500 11px ui-monospace,Consolas,monospace;letter-spacing:.14em;text-transform:uppercase;color:#5F6368;margin-bottom:8px}
+ #gatepass{width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:4px;background:none;font:14px system-ui;color:#111;box-sizing:border-box}
+ #gatepass:focus{outline:none;border-color:#111}
+ #gateerr{min-height:20px;margin-top:7px;font:12px ui-monospace,Consolas,monospace;color:#B3432B}
+</style></head><body>
+<div id="gate">
+  <div id="gatebox">
+    <div id="gatelabel">Password</div>
+    <input id="gatepass" type="password" autocomplete="off">
+    <div id="gateerr"></div>
+  </div>
+</div>
+<div class="wrap">
+<div class="crumb"><a href="../">&larr; DEMOS</a></div>
+<h1>Open-weights model benchmark</h1>
+<nav>
+ <button class="on" onclick="tab(event,'t1')">Results</button>
+ <button onclick="tab(event,'t2')">Contamination probe</button>
+ <button onclick="tab(event,'t3')">Methodology</button>
+</nav>
+
+<div id="t1" class="tab on">
+<h2>Project description</h2>
+<p>ADA scores earnings-call transcripts for early spin-off signal: an LLM reads a transcript's Q&amp;A snippets, blinded of company and date, and returns nine integer scores measuring separation language, strategic-review language, analyst questions about breakups, and so on... The current version uses OpenAI's mini model. The question here is whether an open-weights model does the job as well, which would matter for cost and self-hosting (as well as greater access into model internals).</p>
+<p>The benchmark is 213 transcripts from GE, Honeywell, and IBM (2008&ndash;2026), of which 40 precede an actual spin-off announcement within 18 months; a model is good if its scores rank those 40 above the rest.</p>
+<p>Two questions I had going in: can open models match the mini model's 100% JSON reliability under a strict output format, and, since these are three of the most-discussed companies in any training corpus, how well does the blinding work? (see Contamination probe).</p>
+<h2>Headline</h2>
+<p><b>Qwen3-235B is the only open-weight model competitive with the OpenAI-mini baseline.</b> It is slightly worse on AUC-PR (0.331 vs 0.391) and slightly better on AUC-ROC (0.679 vs 0.661). Feeding both models' scores into the same logistic regression performs best of anything tested (AUC-PR 0.397, AUC-ROC 0.704). This works because the two models are partly picking up on different things, so a linear combination of their scores separates events better than either set of scores does on its own.</p>
+<p>Llama-3.3-70B and gpt-oss-120b are worse. All three models returned valid JSON on 100% of rows.</p>
+<p>With 40 positive labels, the differences (a few points of AUC) are small relative to sampling noise. Hover the bars for 95% bootstrap confidence intervals, which overlap heavily across the top three configurations.</p>
+<svg viewBox="0 0 760 270" style="max-width:760px;width:100%;font:11px system-ui" role="img"><line x1="40" y1="224.0" x2="752" y2="224.0" stroke="#e6e6e6"/><text x="34" y="227.0" text-anchor="end" fill="#777">0.0</text><line x1="40" y1="181.6" x2="752" y2="181.6" stroke="#e6e6e6"/><text x="34" y="184.6" text-anchor="end" fill="#777">0.2</text><line x1="40" y1="139.2" x2="752" y2="139.2" stroke="#e6e6e6"/><text x="34" y="142.2" text-anchor="end" fill="#777">0.4</text><line x1="40" y1="96.8" x2="752" y2="96.8" stroke="#e6e6e6"/><text x="34" y="99.8" text-anchor="end" fill="#777">0.6</text><line x1="40" y1="54.4" x2="752" y2="54.4" stroke="#e6e6e6"/><text x="34" y="57.4" text-anchor="end" fill="#777">0.8</text><line x1="40" y1="12.0" x2="752" y2="12.0" stroke="#e6e6e6"/><text x="34" y="15.0" text-anchor="end" fill="#777">1.0</text><rect x="81.2" y="141.2" width="26.0" height="82.8" fill="#1a6faf"><title>AUC-PR — OpenAI-mini (baseline): 0.39 (95% CI 0.26–0.53)</title></rect><line x1="94.2" y1="169.3" x2="94.2" y2="110.9" stroke="#333" stroke-width="1.2"/><line x1="90.7" y1="169.3" x2="97.7" y2="169.3" stroke="#333" stroke-width="1.2"/><line x1="90.7" y1="110.9" x2="97.7" y2="110.9" stroke="#333" stroke-width="1.2"/><rect x="111.2" y="83.8" width="26.0" height="140.2" fill="#c3c3c3"><title>AUC-ROC — OpenAI-mini (baseline): 0.66 (95% CI 0.57–0.75)</title></rect><line x1="124.2" y1="104.2" x2="124.2" y2="65.0" stroke="#333" stroke-width="1.2"/><line x1="120.7" y1="104.2" x2="127.7" y2="104.2" stroke="#333" stroke-width="1.2"/><line x1="120.7" y1="65.0" x2="127.7" y2="65.0" stroke="#333" stroke-width="1.2"/><text x="111.2" y="238" text-anchor="middle" fill="#333">OpenAI-mini</text><text x="111.2" y="249" text-anchor="middle" fill="#333">(baseline)</text><rect x="223.6" y="153.9" width="26.0" height="70.1" fill="#1a6faf"><title>AUC-PR — Qwen3-235B alone: 0.33 (95% CI 0.22–0.48)</title></rect><line x1="236.6" y1="177.9" x2="236.6" y2="122.8" stroke="#333" stroke-width="1.2"/><line x1="233.1" y1="177.9" x2="240.1" y2="177.9" stroke="#333" stroke-width="1.2"/><line x1="233.1" y1="122.8" x2="240.1" y2="122.8" stroke="#333" stroke-width="1.2"/><rect x="253.6" y="80.0" width="26.0" height="144.0" fill="#c3c3c3"><title>AUC-ROC — Qwen3-235B alone: 0.68 (95% CI 0.58–0.77)</title></rect><line x1="266.6" y1="100.6" x2="266.6" y2="61.0" stroke="#333" stroke-width="1.2"/><line x1="263.1" y1="100.6" x2="270.1" y2="100.6" stroke="#333" stroke-width="1.2"/><line x1="263.1" y1="61.0" x2="270.1" y2="61.0" stroke="#333" stroke-width="1.2"/><text x="253.6" y="238" text-anchor="middle" fill="#333">Qwen3-235B</text><text x="253.6" y="249" text-anchor="middle" fill="#333">alone</text><rect x="366.0" y="139.9" width="26.0" height="84.1" fill="#1a6faf"><title>AUC-PR — Qwen3-235B + mini: 0.40 (95% CI 0.27–0.55)</title></rect><line x1="379.0" y1="167.8" x2="379.0" y2="106.9" stroke="#333" stroke-width="1.2"/><line x1="375.5" y1="167.8" x2="382.5" y2="167.8" stroke="#333" stroke-width="1.2"/><line x1="375.5" y1="106.9" x2="382.5" y2="106.9" stroke="#333" stroke-width="1.2"/><rect x="396.0" y="74.8" width="26.0" height="149.2" fill="#c3c3c3"><title>AUC-ROC — Qwen3-235B + mini: 0.70 (95% CI 0.61–0.79)</title></rect><line x1="409.0" y1="93.7" x2="409.0" y2="56.7" stroke="#333" stroke-width="1.2"/><line x1="405.5" y1="93.7" x2="412.5" y2="93.7" stroke="#333" stroke-width="1.2"/><line x1="405.5" y1="56.7" x2="412.5" y2="56.7" stroke="#333" stroke-width="1.2"/><text x="396.0" y="238" text-anchor="middle" fill="#333">Qwen3-235B</text><text x="396.0" y="249" text-anchor="middle" fill="#333">+ mini</text><rect x="508.4" y="173.8" width="26.0" height="50.2" fill="#1a6faf"><title>AUC-PR — Llama-3.3-70B alone: 0.24 (95% CI 0.16–0.35)</title></rect><line x1="521.4" y1="190.8" x2="521.4" y2="150.0" stroke="#333" stroke-width="1.2"/><line x1="517.9" y1="190.8" x2="524.9" y2="190.8" stroke="#333" stroke-width="1.2"/><line x1="517.9" y1="150.0" x2="524.9" y2="150.0" stroke="#333" stroke-width="1.2"/><rect x="538.4" y="106.2" width="26.0" height="117.8" fill="#c3c3c3"><title>AUC-ROC — Llama-3.3-70B alone: 0.56 (95% CI 0.46–0.65)</title></rect><line x1="551.4" y1="126.2" x2="551.4" y2="86.0" stroke="#333" stroke-width="1.2"/><line x1="547.9" y1="126.2" x2="554.9" y2="126.2" stroke="#333" stroke-width="1.2"/><line x1="547.9" y1="86.0" x2="554.9" y2="86.0" stroke="#333" stroke-width="1.2"/><text x="538.4" y="238" text-anchor="middle" fill="#333">Llama-3.3-70B</text><text x="538.4" y="249" text-anchor="middle" fill="#333">alone</text><rect x="650.8" y="171.8" width="26.0" height="52.2" fill="#1a6faf"><title>AUC-PR — gpt-oss-120b alone: 0.25 (95% CI 0.16–0.38)</title></rect><line x1="663.8" y1="189.5" x2="663.8" y2="143.1" stroke="#333" stroke-width="1.2"/><line x1="660.3" y1="189.5" x2="667.3" y2="189.5" stroke="#333" stroke-width="1.2"/><line x1="660.3" y1="143.1" x2="667.3" y2="143.1" stroke="#333" stroke-width="1.2"/><rect x="680.8" y="113.0" width="26.0" height="111.0" fill="#c3c3c3"><title>AUC-ROC — gpt-oss-120b alone: 0.52 (95% CI 0.41–0.63)</title></rect><line x1="693.8" y1="136.4" x2="693.8" y2="89.6" stroke="#333" stroke-width="1.2"/><line x1="690.3" y1="136.4" x2="697.3" y2="136.4" stroke="#333" stroke-width="1.2"/><line x1="690.3" y1="89.6" x2="697.3" y2="89.6" stroke="#333" stroke-width="1.2"/><text x="680.8" y="238" text-anchor="middle" fill="#333">gpt-oss-120b</text><text x="680.8" y="249" text-anchor="middle" fill="#333">alone</text><rect x="40" y="260" width="9" height="9" fill="#1a6faf"/><text x="53" y="268" fill="#333">AUC-PR</text><rect x="114.6" y="260" width="9" height="9" fill="#c3c3c3"/><text x="127.6" y="268" fill="#333">AUC-ROC</text></svg>
+<h2>Scorecard</h2>
+<table><thead><tr><th>Model</th><th>Features</th><th>AUC-PR <span class='ci'>[95% CI]</span></th><th>AUC-ROC <span class='ci'>[95% CI]</span></th><th>Latency/row</th></tr></thead><tbody><tr><td>OpenAI-mini (baseline)</td><td>—</td><td>0.391 <span class='ci'>[0.26, 0.53]</span></td><td>0.661 <span class='ci'>[0.57, 0.75]</span></td><td>—</td></tr><tr><td>Qwen3-235B-A22B</td><td>alone</td><td>0.331 <span class='ci'>[0.22, 0.48]</span></td><td>0.679 <span class='ci'>[0.58, 0.77]</span></td><td>0.66s</td></tr><tr><td>Qwen3-235B-A22B</td><td>+ mini</td><td>0.397 <span class='ci'>[0.27, 0.55]</span></td><td>0.704 <span class='ci'>[0.61, 0.79]</span></td><td></td></tr><tr><td>Llama-3.3-70B</td><td>alone</td><td>0.237 <span class='ci'>[0.16, 0.35]</span></td><td>0.556 <span class='ci'>[0.46, 0.65]</span></td><td>1.08s</td></tr><tr><td>gpt-oss-120b</td><td>alone</td><td>0.246 <span class='ci'>[0.16, 0.38]</span></td><td>0.524 <span class='ci'>[0.41, 0.63]</span></td><td>6.19s</td></tr></tbody></table>
+</div>
+
+<div id="t2" class="tab">
+<h2>Can models identify the blinded transcripts? Yes; almost perfectly.</h2>
+<p>The benchmark is meant to measure whether a model can detect spin-off signal in the text it is shown. One thought I had is: if the model can recognize which company, and which year, it is reading, the test is partly vacuous: a high score may reflect memory of what the company announced next rather than anything in the text. Although the snippets were blinded and anonymized, the models have almost certainly seen these transcripts in their training data.</p>
+<p>To test this, I sent these 213 blinded snippet sets to each model with a prompt asking it to identify the company, the approximate year, and any spin-offs it associates with the company (prompt in Methodology).</p>
+<svg viewBox="0 0 680 250" style="max-width:680px;width:100%;font:11px system-ui" role="img"><line x1="40" y1="204.0" x2="672" y2="204.0" stroke="#e6e6e6"/><text x="34" y="207.0" text-anchor="end" fill="#777">0.0</text><line x1="40" y1="165.6" x2="672" y2="165.6" stroke="#e6e6e6"/><text x="34" y="168.6" text-anchor="end" fill="#777">0.2</text><line x1="40" y1="127.2" x2="672" y2="127.2" stroke="#e6e6e6"/><text x="34" y="130.2" text-anchor="end" fill="#777">0.4</text><line x1="40" y1="88.8" x2="672" y2="88.8" stroke="#e6e6e6"/><text x="34" y="91.8" text-anchor="end" fill="#777">0.6</text><line x1="40" y1="50.4" x2="672" y2="50.4" stroke="#e6e6e6"/><text x="34" y="53.4" text-anchor="end" fill="#777">0.8</text><line x1="40" y1="12.0" x2="672" y2="12.0" stroke="#e6e6e6"/><text x="34" y="15.0" text-anchor="end" fill="#777">1.0</text><rect x="100.3" y="12.0" width="26.0" height="192.0" fill="#1a6faf"><title>Identified the company — Qwen3-235B-A22B: 100%</title></rect><text x="113.3" y="9.0" text-anchor="middle" fill="#333">100%</text><rect x="130.3" y="79.6" width="26.0" height="124.4" fill="#c25b1e"><title>Gave the exact year — Qwen3-235B-A22B: 65%</title></rect><text x="143.3" y="76.6" text-anchor="middle" fill="#333">65%</text><rect x="160.3" y="12.0" width="26.0" height="192.0" fill="#5c8a3a"><title>Named ≥1 spin-off — Qwen3-235B-A22B: 100%</title></rect><text x="173.3" y="9.0" text-anchor="middle" fill="#333">100%</text><text x="145.3" y="218" text-anchor="middle" fill="#333">Qwen3-235B-A22B</text><rect x="311.0" y="12.0" width="26.0" height="192.0" fill="#1a6faf"><title>Identified the company — Llama-3.3-70B: 100%</title></rect><text x="324.0" y="9.0" text-anchor="middle" fill="#333">100%</text><rect x="341.0" y="75.1" width="26.0" height="128.9" fill="#c25b1e"><title>Gave the exact year — Llama-3.3-70B: 67%</title></rect><text x="354.0" y="72.1" text-anchor="middle" fill="#333">67%</text><rect x="371.0" y="12.0" width="26.0" height="192.0" fill="#5c8a3a"><title>Named ≥1 spin-off — Llama-3.3-70B: 100%</title></rect><text x="384.0" y="9.0" text-anchor="middle" fill="#333">100%</text><text x="356.0" y="218" text-anchor="middle" fill="#333">Llama-3.3-70B</text><rect x="521.7" y="15.6" width="26.0" height="188.4" fill="#1a6faf"><title>Identified the company — gpt-oss-120b: 98%</title></rect><text x="534.7" y="12.6" text-anchor="middle" fill="#333">98%</text><rect x="551.7" y="109.4" width="26.0" height="94.6" fill="#c25b1e"><title>Gave the exact year — gpt-oss-120b: 49%</title></rect><text x="564.7" y="106.4" text-anchor="middle" fill="#333">49%</text><rect x="581.7" y="14.7" width="26.0" height="189.3" fill="#5c8a3a"><title>Named ≥1 spin-off — gpt-oss-120b: 99%</title></rect><text x="594.7" y="11.7" text-anchor="middle" fill="#333">99%</text><text x="566.7" y="218" text-anchor="middle" fill="#333">gpt-oss-120b</text><rect x="40" y="240" width="9" height="9" fill="#1a6faf"/><text x="53" y="248" fill="#333">Identified the company</text><rect x="220.2" y="240" width="9" height="9" fill="#c25b1e"/><text x="233.2" y="248" fill="#333">Gave the exact year</text><rect x="380.59999999999997" y="240" width="9" height="9" fill="#5c8a3a"/><text x="393.59999999999997" y="248" fill="#333">Named ≥1 spin-off</text></svg>
+<p>Llama and Qwen identified the issuer on 100% of snippet sets and gave the exact calendar year on roughly two-thirds of the ones they identified (median year error: 0). gpt-oss was nearly identical. All three named genuine historical spin-offs (Kyndryl, Wabtec, Synchrony, …) for essentially every transcript.</p>
+<h2>Interpretation</h2>
+<p>Any backtest on these companies therefore cannot certify that a model's scores come from reading rather than from memory. That said, the scores do not look memory-driven: if models were exploiting memorized spin-offs, their standalone discrimination would be higher than we see. My read is that contamination is possible but there is no evidence the models are actually sufficiently capable to exploit this. Possibly, a larger model, or reasoning model, would be able to do so; in this case, the test is transcripts dated after a model's training cutoff, or companies less famous than GE, Honeywell, and IBM.</p>
+</div>
+
+<div id="t3" class="tab">
+<h2>Operationalization</h2>
+<h3>Data</h3>
+<table class="kv">
+<tr><td>Input file</td><td><code>data/earnings_open_model_benchmark_export.csv</code> (provided; 213 rows)</td></tr>
+<tr><td>Unit</td><td>One earnings-call transcript's Q&amp;A snippets (FactSet-derived, ≤2,500 chars), company name and date stripped</td></tr>
+<tr><td>Issuers / span</td><td>GE, Honeywell, IBM; 2008–2026</td></tr>
+<tr><td>Label</td><td><code>event_18m</code> = 1 if a spin-off announcement followed within 18 months (40 of 213 rows)</td></tr>
+</table>
+<h3>Models &amp; serving</h3>
+<table>
+<thead><tr><th>Model</th><th>HF repo</th><th>Hardware</th><th>max_tokens</th><th>Non-default vLLM args</th></tr></thead>
+<tbody><tr><td>Qwen3-235B-A22B<br><span style='color:#666;font-size:12px'>FP8, non-thinking instruct variant</span></td><td><code>Qwen/Qwen3-235B-A22B-Instruct-2507-FP8</code></td><td>4× H100 80GB (TP=4)</td><td>200</td><td><code>--max-model-len 8192</code></td></tr><tr><td>Llama-3.3-70B<br><span style='color:#666;font-size:12px'>FP8 dynamic quantization</span></td><td><code>RedHatAI/Llama-3.3-70B-Instruct-FP8-dynamic</code></td><td>2× H100 80GB (TP=2)</td><td>200</td><td><code>--max-model-len 8192</code></td></tr><tr><td>gpt-oss-120b<br><span style='color:#666;font-size:12px'>reasoning model; 2048-token budget covers thinking tokens</span></td><td><code>openai/gpt-oss-120b</code></td><td>1× H100 80GB (TP=1)</td><td>2048</td><td><code>--gpu-memory-utilization 0.95 --enforce-eager --max-model-len 4096</code></td></tr></tbody>
+</table>
+<h3>Benchmark prompt</h3>
+<pre>Analyze the supplied earnings-call Q&amp;A snippets for PRE-ANNOUNCEMENT spin-off or business-separation signal.
+
+You must score ONLY the text shown below.
+Do not use outside knowledge about the company, ticker, management team, historical transactions, news, dates, or known spin-offs.
+Do not infer that an event happened or will happen unless the supplied snippets themselves contain evidence.
+The company identity and date are intentionally omitted.
+
+Return ONLY compact JSON. No markdown. No explanation.
+
+Schema:
+{
+  &quot;s&quot;: 1,
+  &quot;sep&quot;: 1,
+  &quot;strat&quot;: 1,
+  &quot;standalone&quot;: 1,
+  &quot;port&quot;: 1,
+  &quot;analyst_q&quot;: 0,
+  &quot;noise&quot;: 1,
+  &quot;prior&quot;: 1,
+  &quot;conf&quot;: 1
+}
+
+Integer meanings:
+s = forward-looking spin/separation signal, 1-5
+sep = explicit spin/separation/carve-out/split-off language, 1-5
+strat = strategic alternatives/review language, 1-5
+standalone = standalone company rationale, 1-5
+port = portfolio optimization/divestiture/restructuring signal, 1-5
+analyst_q = count of direct analyst questions about spin/separation/strategic alternatives
+noise = generic business noise, 1-5
+prior = already-announced/completed spin noise, 1-5
+conf = confidence that the score is supported by the supplied snippets, 1-5
+
+Rules:
+- Most transcripts should have s=1.
+- Score s above 1 only when the supplied text itself contains forward-looking evidence.
+- Already-announced or completed spin discussion should raise prior, not s.
+- Generic M&amp;A, capital allocation, operational restructuring, and generic portfolio comments should not raise s.
+- Direct analyst questions matter only if they are about spin-offs, separations, strategic alternatives, divestitures, standalone businesses, or portfolio restructuring.
+- If the snippets are weak, ambiguous, or only generic, keep s=1 or s=2.
+- If the snippets do not contain enough text to support a conclusion, set conf low.
+- Return no evidence, no quotes, no rationale, no markdown.
+
+Supplied snippets:
+{{snippets}}
+</pre>
+<h3>Evaluation</h3>
+<p>Evaluation uses the provided <code>evaluate_results.py</code>, unmodified. It fits a stratified 5-fold cross-validated logistic regression on the model's returned score fields and reports AUC-PR and AUC-ROC on the out-of-fold predictions against <code>event_18m</code>. "Alone" uses only the open model's fields; "+ mini" feeds both models' fields into the same regression. Confidence intervals are a percentile bootstrap over rows (4,000 resamples) of the out-of-fold predictions.</p>
+<h3>Contamination-probe prompt</h3>
+<pre>You are shown excerpts from an earnings-call Q&amp;A session. The company name and date have been removed.
+
+Based ONLY on what you can recognize or recall, answer:
+1. Which company is this most likely to be?
+2. Approximately what year is this call from?
+3. What spin-offs, separations, or major divestitures do you associate with this company (from your own knowledge, at any point in its history)?
+
+It is fine to guess. If you truly cannot tell, say &quot;unknown&quot;.
+
+Return ONLY compact JSON. No markdown. No explanation.
+Schema:
+{&quot;company&quot;: &quot;name or unknown&quot;, &quot;ticker&quot;: &quot;ticker or unknown&quot;, &quot;year&quot;: 2015, &quot;spinoffs&quot;: [&quot;name1&quot;, &quot;name2&quot;], &quot;conf&quot;: 3}
+
+conf = 1-5 confidence in the company identification.
+
+Excerpts:
+{{snippets}}</pre>
+</div>
+
+<div class="fn">ADA · July 2026. Internal work product — do not distribute outside Evercore.</div>
+</div>
+<script>
+(function(){
+  var PASS='ada_332', gate=document.getElementById('gate'), gp=document.getElementById('gatepass');
+  if(sessionStorage.getItem('gu_unlocked')==='1'){gate.remove();return;}
+  gp.focus();
+  gp.addEventListener('keydown',function(e){
+    if(e.key!=='Enter')return;
+    if(gp.value===PASS){sessionStorage.setItem('gu_unlocked','1');gate.remove();}
+    else{document.getElementById('gateerr').textContent='incorrect password';gp.value='';}
+  });
+})();
+function tab(e,id){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
+document.getElementById(id).classList.add('on');e.target.classList.add('on');}
+</script></body></html>
