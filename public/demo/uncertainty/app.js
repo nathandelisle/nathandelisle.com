@@ -55,19 +55,20 @@ const fmtS = v => String(Math.round(v * 10) / 10);
 
 // ---------- correctness grading for re-sampled answers -------------------------
 
-// same truth patterns the offline bake used; tri-state so a hedge or a
-// rambling non-answer stays grey instead of being called wrong
+// two-tier truth patterns: strict must see the actual name, loose only spots
+// the truth's tokens — a loose-only hit (garbled or partial, e.g. "Stanford Om
+// … Dunham") is ungradeable grey, as is a hedge or a rambling non-answer
 const GRADERS = {
-  s1: /dunham/i,
-  s2: /dulce|dulcia/i,
-  s3: /mafalda|maud|savoy/i,
+  s1: { strict: /\bann\s+dunham\b/i, loose: /dunham/i },
+  s2: { strict: /\bdul(?:ce|cia)\b[\s\S]{0,24}\baragon\b/i, loose: /dul(?:ce|cia)/i },
+  s3: { strict: /\b(?:mafalda|maud|matilda)\b[\s\S]{0,24}\bsavoy\b/i, loose: /mafalda|matilda|maud|savoy/i },
 };
 const HEDGE = /(don'?t|do not|cannot|can'?t|unable|not sure|unsure|unknown|unclear|not (certain|specified|recorded)|no (reliable |definitive )?(information|record|answer)|sorry|i think|possibly|perhaps|it (may|might|could) be)/i;
 
-function grade(text, re) {
-  if (!re) return null;
-  if (re.test(text)) return true;
-  if (HEDGE.test(text) || text.length > 80) return null;
+function grade(text, g) {
+  if (!g) return null;
+  if (g.strict.test(text)) return true;
+  if (HEDGE.test(text) || text.length > 80 || g.loose.test(text)) return null;
   return false;
 }
 
@@ -95,7 +96,7 @@ controls.maxDistance = 9;
 
 // ---------- fixed reference frame: floor grid + axis triad --------------------
 
-function textSprite(text) {
+function textSprite(text, s = 0.30) {
   const c = document.createElement('canvas');
   c.width = 128; c.height = 48;
   const g = c.getContext('2d');
@@ -107,7 +108,7 @@ function textSprite(text) {
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({
     map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false,
   }));
-  sp.scale.set(0.30, 0.1125, 1);
+  sp.scale.set(s, s * 0.375, 1);
   return sp;
 }
 
@@ -164,35 +165,6 @@ const sphereGeo = new THREE.SphereGeometry(1, 24, 18);
 const ringGeo = new THREE.RingGeometry(1.5, 1.72, 48);
 const archGeo = new THREE.OctahedronGeometry(0.022);
 
-// Coincident answers (identical strings embed identically) are packed into a
-// tight ball of individual dots so every answer stays visible and hoverable.
-function spreadDuplicates(pts) {
-  const keyOf = p => p.map(v => Math.round(v / 0.014)).join(',');
-  const groups = new Map();
-  pts.forEach((p, i) => {
-    const k = keyOf(p);
-    if (!groups.has(k)) groups.set(k, []);
-    groups.get(k).push(i);
-  });
-  const out = pts.map(p => p.slice());
-  const golden = Math.PI * (3 - Math.sqrt(5));
-  for (const idxs of groups.values()) {
-    const m = idxs.length;
-    if (m < 2) continue;
-    idxs.forEach((pi, j) => {
-      const t = (j + 0.5) / m;
-      const r = DOT_R * 1.35 * Math.cbrt(m) * Math.cbrt(t);
-      const y = 1 - 2 * t;
-      const rad = Math.sqrt(Math.max(1 - y * y, 0));
-      const th = golden * j;
-      out[pi][0] += r * rad * Math.cos(th);
-      out[pi][1] += r * y;
-      out[pi][2] += r * rad * Math.sin(th);
-    });
-  }
-  return out;
-}
-
 let hovered = null;
 let currentMeshes = [];
 
@@ -213,55 +185,79 @@ function renderScenario(sc, live = false) {
   const norm = p => [(p[0] - c[0]) * k, (p[1] - c[1]) * k, (p[2] - c[2]) * k];
 
   // per-answer aggregates for the tooltip: identical strings embed identically,
-  // so the suspicion word is an answer-group verdict (group mean), never a
-  // per-sample one — per-sample rank noise is shown separately as a number
-  const counts = new Map();
-  const sums = new Map();
+  // so the tooltip is an answer-level verdict — the suspicion word comes from
+  // the group's mean rank-sum, with the per-sample range shown as numbers
+  const aggs = new Map();
   for (const p of sc.points) {
     const key = p.text.toLowerCase().replace(/[\s.]+$/, '');
-    counts.set(key, (counts.get(key) || 0) + 1);
-    sums.set(key, (sums.get(key) || 0) + p.s);
+    const a = aggs.get(key) || { count: 0, sum: 0, min: Infinity, max: -Infinity };
+    a.count += 1;
+    a.sum += p.s;
+    a.min = Math.min(a.min, p.s);
+    a.max = Math.max(a.max, p.s);
+    aggs.set(key, a);
   }
-
-  const positions = spreadDuplicates(sc.points.map(p => norm(p.p)));
 
   document.getElementById('legend-na').style.display =
     sc.points.some(p => p.correct == null) ? '' : 'none';
 
-  sc.points.forEach((pt, i) => {
-    const color = pt.correct === true ? COL.correct
-      : pt.correct === false ? COL.wrong : COL.neutral;
+  // coincident samples collapse into one sphere, radius ∝ ∛count, labeled ×N
+  const groups = new Map();
+  for (const pt of sc.points) {
+    const q = norm(pt.p);
+    const k = q.map(v => Math.round(v / 0.014)).join(',');
+    if (!groups.has(k)) groups.set(k, { pts: [], sum: [0, 0, 0] });
+    const g = groups.get(k);
+    g.pts.push(pt);
+    for (let a = 0; a < 3; a++) g.sum[a] += q[a];
+  }
+
+  for (const g of groups.values()) {
+    const dup = g.pts.length;
+    const pos = g.sum.map(v => v / dup);
+    const rep = g.pts[0];
+    const agg = aggs.get(rep.text.toLowerCase().replace(/[\s.]+$/, ''));
+    const r = DOT_R * Math.cbrt(dup);
+    const color = rep.correct === true ? COL.correct
+      : rep.correct === false ? COL.wrong : COL.neutral;
     const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0 });
     const m = new THREE.Mesh(sphereGeo, mat);
-    m.scale.setScalar(DOT_R);
-    m.position.set(...positions[i]);
-    const key = pt.text.toLowerCase().replace(/[\s.]+$/, '');
+    m.scale.setScalar(r);
+    m.position.set(...pos);
     m.userData = {
-      text: pt.text,
-      correct: pt.correct,
-      greedy: pt.greedy,
+      text: rep.text,
+      correct: rep.correct,
+      greedy: g.pts.some(p => p.greedy),
       truth: sc.truth,
-      count: counts.get(key),
-      s: pt.s,
-      groupS: sums.get(key) / counts.get(key),
+      count: agg.count,
+      sMean: agg.sum / agg.count,
+      sMin: agg.min,
+      sMax: agg.max,
       n,
-      baseScale: DOT_R,
+      baseScale: r,
     };
     cloud.add(m);
     currentMeshes.push(m);
-    if (pt.greedy) {
+    if (dup > 1) {
+      const label = textSprite('×' + dup, 0.24);
+      // clear of the greedy ring (outer radius 1.72 r) plus the glyph height
+      label.position.set(pos[0], pos[1] + 1.8 * r + 0.06, pos[2]);
+      label.raycast = () => {};
+      cloud.add(label);
+    }
+    if (m.userData.greedy) {
       const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({
         color: 0x1C1A15, side: THREE.DoubleSide, transparent: true, opacity: 0.85,
         depthTest: false,
       }));
-      ring.scale.setScalar(DOT_R);
+      ring.scale.setScalar(r);
       ring.position.copy(m.position);
       ring.renderOrder = 10;
       ring.raycast = () => {};
       rings.push(ring);
       cloud.add(ring);
     }
-  });
+  }
 
   // the volume the archetypes enclose — always drawn, but its visual weight
   // is keyed to the true 15-D volume: a collapsed batch's hull is a flat,
@@ -359,10 +355,11 @@ renderer.domElement.addEventListener('pointermove', ev => {
           : '<div class="v na">not auto-graded</div>';
       }
       const times = d.count > 1 ? `given ${d.count} of ${d.n} times` : 'given once';
+      const range = d.count > 1 ? ` · samples ${fmtS(d.sMin)}–${fmtS(d.sMax)}` : '';
       tip.innerHTML = `
         <div class="a">${escapeHtml(d.text)}</div>
-        <div class="m">${times} · suspicion ${suspWord(d.groupS, d.n)}${d.greedy ? ' · the temperature-0 answer' : ''}</div>
-        <div class="m2">this sample: ${fmtS(d.s)} / ${3 * d.n}</div>
+        <div class="m">${times} · suspicion ${suspWord(d.sMean, d.n)}${d.greedy ? ' · the temperature-0 answer' : ''}</div>
+        <div class="m2">score ${fmtS(d.sMean)} / ${3 * d.n}${range}</div>
         ${verdict}`;
       renderer.domElement.style.cursor = 'pointer';
     }
