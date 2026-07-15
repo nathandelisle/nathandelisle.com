@@ -53,6 +53,24 @@ const suspWord = (s, n) => {
 };
 const fmtS = v => String(Math.round(v * 10) / 10);
 
+// ---------- correctness grading for re-sampled answers -------------------------
+
+// same truth patterns the offline bake used; tri-state so a hedge or a
+// rambling non-answer stays grey instead of being called wrong
+const GRADERS = {
+  s1: /dunham/i,
+  s2: /dulce|dulcia/i,
+  s3: /mafalda|maud|savoy/i,
+};
+const HEDGE = /(don'?t|do not|cannot|can'?t|unable|not sure|unsure|unknown|unclear|not (certain|specified|recorded)|no (reliable |definitive )?(information|record|answer)|sorry|i think|possibly|perhaps|it (may|might|could) be)/i;
+
+function grade(text, re) {
+  if (!re) return null;
+  if (re.test(text)) return true;
+  if (HEDGE.test(text) || text.length > 80) return null;
+  return false;
+}
+
 // ---------- three setup ------------------------------------------------------
 
 const wrap = document.getElementById('canvasWrap');
@@ -207,8 +225,12 @@ function renderScenario(sc, live = false) {
 
   const positions = spreadDuplicates(sc.points.map(p => norm(p.p)));
 
+  document.getElementById('legend-na').style.display =
+    sc.points.some(p => p.correct == null) ? '' : 'none';
+
   sc.points.forEach((pt, i) => {
-    const color = live ? COL.neutral : (pt.correct ? COL.correct : COL.wrong);
+    const color = pt.correct === true ? COL.correct
+      : pt.correct === false ? COL.wrong : COL.neutral;
     const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0 });
     const m = new THREE.Mesh(sphereGeo, mat);
     m.scale.setScalar(DOT_R);
@@ -218,7 +240,6 @@ function renderScenario(sc, live = false) {
       text: pt.text,
       correct: pt.correct,
       greedy: pt.greedy,
-      live,
       truth: sc.truth,
       count: counts.get(key),
       s: pt.s,
@@ -332,10 +353,10 @@ renderer.domElement.addEventListener('pointermove', ev => {
       hovered = m;
       m.scale.setScalar(d.baseScale * 1.25);
       let verdict = '';
-      if (!d.live) {
-        verdict = d.correct
-          ? '<div class="v ok">✓ correct</div>'
-          : `<div class="v no">✗ wrong — it was ${d.truth}</div>`;
+      if (d.truth) {
+        verdict = d.correct === true ? '<div class="v ok">✓ correct</div>'
+          : d.correct === false ? `<div class="v no">✗ wrong — it was ${d.truth}</div>`
+          : '<div class="v na">not auto-graded</div>';
       }
       const times = d.count > 1 ? `given ${d.count} of ${d.n} times` : 'given once';
       tip.innerHTML = `
@@ -468,7 +489,7 @@ input.addEventListener('keydown', async ev => {
       volume: result.volume,
       archetypes: result.Z3,
       points: texts.map((text, i) => ({
-        text, correct: false, greedy: i === texts.length - 1,
+        text, correct: null, greedy: i === texts.length - 1,
         p: result.P3[i], s: result.S[i],
       })),
     };
@@ -481,7 +502,7 @@ input.addEventListener('keydown', async ev => {
   }
 });
 
-// ---------- regenerate: recompute the geometry in-browser ------------------------
+// ---------- regenerate: fresh samples from the model, graded in-browser ----------
 
 const regenBtn = document.getElementById('regen');
 regenBtn.addEventListener('click', async () => {
@@ -491,12 +512,28 @@ regenBtn.addEventListener('click', async () => {
   busy = true;
   regenBtn.disabled = true;
   try {
-    const result = await analyzeTexts(sc.points.map(p => p.text), stage => {
+    regenBtn.textContent = 'sampling the model 30×…';
+    const res = await fetch(API + '/sample', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-demo-pass': PASS },
+      body: JSON.stringify({ question: sc.question }),
+    });
+    if (!res.ok) throw new Error('sampling failed (' + res.status + ')');
+    const { samples, greedy } = await res.json();
+    const texts = [...samples, greedy].map(t => t.replace(/\s+/g, ' ').trim());
+    const result = await analyzeTexts(texts, stage => {
       regenBtn.textContent = stage === 'embedding' ? 'embedding…' : 'fitting archetypes…';
     });
+    const re = GRADERS[sc.id];
     sc.volume = result.volume;
     sc.archetypes = result.Z3;
-    sc.points.forEach((p, i) => { p.p = result.P3[i]; p.s = result.S[i]; });
+    sc.points = texts.map((text, i) => ({
+      text,
+      correct: grade(text, re),
+      greedy: i === texts.length - 1,
+      p: result.P3[i],
+      s: result.S[i],
+    }));
     select(activeId);
     regenBtn.textContent = 'regenerate';
   } catch (e) {
