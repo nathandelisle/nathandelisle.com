@@ -44,7 +44,14 @@ function fmtVol(v) {
   return i + '.' + f.replace(/(\d{3})(?=\d)/g, '$1 ');
 }
 
-const suspWord = p => (p < 1 / 3 ? 'low' : p < 2 / 3 ? 'moderate' : 'high');
+// s is a rank-sum of three within-batch ranks (each 1..n): range 3..3n,
+// batch mean 3(n+1)/2. "low" = below the batch-mean rank-sum; "high" =
+// average component rank in the top quarter of the batch.
+const suspWord = (s, n) => {
+  const r = s / 3;
+  return r < (n + 1) / 2 ? 'low' : r < 3 * (n + 1) / 4 ? 'moderate' : 'high';
+};
+const fmtS = v => String(Math.round(v * 10) / 10);
 
 // ---------- three setup ------------------------------------------------------
 
@@ -187,14 +194,15 @@ function renderScenario(sc, live = false) {
   const k = maxR > 1e-6 ? 1 / maxR : 1;
   const norm = p => [(p[0] - c[0]) * k, (p[1] - c[1]) * k, (p[2] - c[2]) * k];
 
-  const sMin = Math.min(...sc.points.map(p => p.s));
-  const sMax = Math.max(...sc.points.map(p => p.s));
-
-  // how many times each exact answer occurs (for the tooltip)
+  // per-answer aggregates for the tooltip: identical strings embed identically,
+  // so the suspicion word is an answer-group verdict (group mean), never a
+  // per-sample one — per-sample rank noise is shown separately as a number
   const counts = new Map();
+  const sums = new Map();
   for (const p of sc.points) {
     const key = p.text.toLowerCase().replace(/[\s.]+$/, '');
     counts.set(key, (counts.get(key) || 0) + 1);
+    sums.set(key, (sums.get(key) || 0) + p.s);
   }
 
   const positions = spreadDuplicates(sc.points.map(p => norm(p.p)));
@@ -205,14 +213,17 @@ function renderScenario(sc, live = false) {
     const m = new THREE.Mesh(sphereGeo, mat);
     m.scale.setScalar(DOT_R);
     m.position.set(...positions[i]);
+    const key = pt.text.toLowerCase().replace(/[\s.]+$/, '');
     m.userData = {
       text: pt.text,
       correct: pt.correct,
       greedy: pt.greedy,
       live,
       truth: sc.truth,
-      count: counts.get(pt.text.toLowerCase().replace(/[\s.]+$/, '')),
-      pct: sMax > sMin ? (pt.s - sMin) / (sMax - sMin) : 0,
+      count: counts.get(key),
+      s: pt.s,
+      groupS: sums.get(key) / counts.get(key),
+      n,
       baseScale: DOT_R,
     };
     cloud.add(m);
@@ -326,10 +337,11 @@ renderer.domElement.addEventListener('pointermove', ev => {
           ? '<div class="v ok">✓ correct</div>'
           : `<div class="v no">✗ wrong — it was ${d.truth}</div>`;
       }
-      const times = d.count > 1 ? `given ${d.count} of 31 times` : 'given once';
+      const times = d.count > 1 ? `given ${d.count} of ${d.n} times` : 'given once';
       tip.innerHTML = `
         <div class="a">${escapeHtml(d.text)}</div>
-        <div class="m">${times} · suspicion ${suspWord(d.pct)}${d.greedy ? ' · the temperature-0 answer' : ''}</div>
+        <div class="m">${times} · suspicion ${suspWord(d.groupS, d.n)}${d.greedy ? ' · the temperature-0 answer' : ''}</div>
+        <div class="m2">this sample: ${fmtS(d.s)} / ${3 * d.n}</div>
         ${verdict}`;
       renderer.domElement.style.cursor = 'pointer';
     }
@@ -405,6 +417,18 @@ const statusEl = document.getElementById('status');
 const input = document.getElementById('q');
 let busy = false;
 
+function analyzeTexts(texts, onStage) {
+  return new Promise((resolve, reject) => {
+    worker.onmessage = ev => {
+      const d = ev.data;
+      if (d.stage) onStage(d.stage);
+      else if (d.error) reject(new Error(d.error));
+      else if (d.result) resolve(d.result);
+    };
+    worker.postMessage({ texts });
+  });
+}
+
 function setStatus(msg, err = false) {
   statusEl.textContent = msg;
   statusEl.className = err ? 'err' : '';
@@ -433,15 +457,9 @@ input.addEventListener('keydown', async ev => {
     const { samples, greedy } = await res.json();
     const texts = [...samples, greedy].map(t => t.replace(/\s+/g, ' ').trim());
 
-    const result = await new Promise((resolve, reject) => {
-      worker.onmessage = ev2 => {
-        const d = ev2.data;
-        if (d.stage === 'embedding') setStatus('embedding 31 answers (first run downloads the encoder)…');
-        else if (d.stage === 'analyzing') setStatus('fitting archetypes…');
-        else if (d.error) reject(new Error(d.error));
-        else if (d.result) resolve(d.result);
-      };
-      worker.postMessage({ texts });
+    const result = await analyzeTexts(texts, stage => {
+      if (stage === 'embedding') setStatus('embedding 31 answers (first run downloads the encoder)…');
+      else if (stage === 'analyzing') setStatus('fitting archetypes…');
     });
 
     liveResult = {
@@ -459,6 +477,33 @@ input.addEventListener('keydown', async ev => {
   } catch (e) {
     setStatus(e.message || 'something went wrong', true);
   } finally {
+    busy = false;
+  }
+});
+
+// ---------- regenerate: recompute the geometry in-browser ------------------------
+
+const regenBtn = document.getElementById('regen');
+regenBtn.addEventListener('click', async () => {
+  if (busy) return;
+  const sc = activeId === 'live' ? liveResult : DATA.scenarios.find(s => s.id === activeId);
+  if (!sc) return;
+  busy = true;
+  regenBtn.disabled = true;
+  try {
+    const result = await analyzeTexts(sc.points.map(p => p.text), stage => {
+      regenBtn.textContent = stage === 'embedding' ? 'embedding…' : 'fitting archetypes…';
+    });
+    sc.volume = result.volume;
+    sc.archetypes = result.Z3;
+    sc.points.forEach((p, i) => { p.p = result.P3[i]; p.s = result.S[i]; });
+    select(activeId);
+    regenBtn.textContent = 'regenerate';
+  } catch (e) {
+    console.error(e);
+    regenBtn.textContent = 'failed — retry';
+  } finally {
+    regenBtn.disabled = false;
     busy = false;
   }
 });
