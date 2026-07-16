@@ -26,6 +26,19 @@
  .crumb a{color:#9AA0A6;text-decoration:none}
  .crumb a:hover{color:#111}
  .ph{margin:14px 0;padding:24px 18px;border:1px dashed #ddd;border-radius:4px;background:#f6f6f6;font:12.5px/1.5 ui-monospace,Consolas,monospace;color:#777}
+ .qrow{margin:10px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+ #qsel{max-width:100%;padding:7px 8px;border:1px solid #E5E7EB;border-radius:4px;font:13px system-ui;color:#111;background:#fff}
+ #qbox{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #E5E7EB;border-radius:4px;font:14px system-ui;color:#111;resize:vertical}
+ #qbox:focus{outline:none;border-color:#111}
+ #runbtn{border:1px solid #111;background:#111;color:#fff;padding:8px 18px;border-radius:4px;font:600 13.5px system-ui;cursor:pointer}
+ #runbtn:disabled{opacity:.45;cursor:default}
+ #qstat{font:12px ui-monospace,Consolas,monospace;color:#777}
+ .ansbox{margin:16px 0 8px;padding:14px 16px;border:1px solid #ddd;border-radius:4px;white-space:pre-wrap}
+ .costline{font:12px ui-monospace,Consolas,monospace;color:#777;margin:6px 0 14px}
+ .stepd{border:1px solid #e2e2e2;border-radius:4px;margin:6px 0;background:#fbfbfb}
+ .stepd summary{cursor:pointer;padding:7px 10px;font:12.5px ui-monospace,Consolas,monospace;color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .stepd pre{margin:0;border:0;border-top:1px solid #e2e2e2;border-radius:0}
+ .errbox{margin:14px 0;padding:12px 14px;border:1px solid #e5b8ad;border-radius:4px;background:#fdf6f4;color:#B3432B;font:13px system-ui}
  #gate{position:fixed;inset:0;z-index:100;background:#fff;display:flex;align-items:center;justify-content:center}
  #gatebox{width:280px}
  #gatelabel{font:500 11px ui-monospace,Consolas,monospace;letter-spacing:.14em;text-transform:uppercase;color:#5F6368;margin-bottom:8px}
@@ -87,8 +100,29 @@
 
 <div id="t5" class="tab">
 <h2>Live demo</h2>
-<p>The agent itself: eval-set questions runnable live, a trace view of what it's doing tool-call by tool-call, and a type-your-own-query box.</p>
-<div class="ph">[ placeholder — interactive agent: canned questions · live trace · free query ]</div>
+<p>This runs the real agent: claude-opus-4-8 orchestrating the six tools over the full index, live. Typical question 15–60&nbsp;s; exhaustive-scan questions can take ~3&nbsp;min and cost real money — go easy.</p>
+<div class="qrow">
+<select id="qsel">
+<option value="">— pick an eval-set question, or type your own —</option>
+<option>In Evercore's fairness opinion for 8point3 Energy Partners, what per-share consideration did the opinion address, and which holders were excluded from the fairness determination?</option>
+<option>For the Midcoast Energy Partners opinion letter: what is the letter's date, who is it addressed to, and who signed it?</option>
+<option>How many opinion letters in the corpus were authored by advisers other than Evercore, and which non-Evercore advisers appear most often?</option>
+<option>How many opinion letters in the corpus are addressed to a conflicts committee?</option>
+<option>How many deals have all three document types present (letter + description + supplement)?</option>
+<option>Which opinions in the corpus are most similar to the 8point3 Energy Partners opinion?</option>
+<option>What did Evercore conclude about the fairness of the 8point3 consideration to First Solar and SunPower?</option>
+<option>Summarize Evercore's fairness opinion for the Twitter / X take-private.</option>
+<option>What perpetuity growth rates did Evercore apply in the DCF terminal value for WestRock (as target, not Smurfit Kappa)?</option>
+<option>Which Evercore opinion letters are outliers — worded least like the rest? Explain why for the top three.</option>
+<option>Across healthcare and biopharma deals from the past two years, what discount rates did the DCF analyses in the opinion descriptions use? Give the range and the average.</option>
+</select>
+</div>
+<textarea id="qbox" rows="3" placeholder="Ask the corpus anything…"></textarea>
+<div class="qrow">
+<button id="runbtn" onclick="runAgent()">Run agent</button>
+<span id="qstat"></span>
+</div>
+<div id="qout"></div>
 </div>
 
 <div class="fn">ADA · July 2026.</div>
@@ -107,4 +141,43 @@
 function tab(e,id){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
 document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
 document.getElementById(id).classList.add('on');e.target.classList.add('on');}
+
+/* ---- live demo ---- */
+var API='https://ndelisle--opinion-agent-demo-api.modal.run', APIPASS='ada_332';
+document.getElementById('qsel').addEventListener('change',function(){
+  if(this.value)document.getElementById('qbox').value=this.value;
+});
+function esc(s){var d=document.createElement('span');d.textContent=s==null?'':String(s);return d.innerHTML;}
+async function runAgent(){
+  var q=document.getElementById('qbox').value.trim();
+  var btn=document.getElementById('runbtn'),st=document.getElementById('qstat'),out=document.getElementById('qout');
+  if(!q){st.textContent='type or pick a question first';return;}
+  btn.disabled=true;out.innerHTML='';st.textContent='submitting…';
+  var t0=Date.now(),tick=setInterval(function(){st.textContent='agent running… '+Math.round((Date.now()-t0)/1000)+'s';},1000);
+  try{
+    var r=await fetch(API+'/ask',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({question:q,password:APIPASS})});
+    var j=await r.json();
+    if(j.error)throw new Error(j.error);
+    var cid=j.call_id,res=null;
+    for(var i=0;i<180;i++){
+      await new Promise(function(z){setTimeout(z,2500);});
+      var p=await(await fetch(API+'/result/'+cid+'?password='+APIPASS)).json();
+      if(p.status==='done'){res=p.result;break;}
+      if(p.status==='error')throw new Error(p.error);
+    }
+    if(!res)throw new Error('timed out waiting for the agent');
+    var h='<div class="ansbox">'+esc(res.answer)+'</div>';
+    h+='<div class="costline">'+res.trace.length+' tool call'+(res.trace.length===1?'':'s')
+      +' · $'+(res.cost_usd!=null?res.cost_usd.toFixed(4):'?')
+      +' · '+Math.round((Date.now()-t0)/1000)+'s · opus-4-8 + haiku-4.5</div>';
+    res.trace.forEach(function(s){
+      h+='<details class="stepd"><summary>step '+s.step+' · '+esc(s.tool)+'('+esc(JSON.stringify(s.args)).slice(0,160)+')</summary>'
+        +'<pre>'+esc(s.result_preview)+'</pre></details>';
+    });
+    out.innerHTML=h;st.textContent='';
+  }catch(e){
+    out.innerHTML='<div class="errbox">'+esc(e.message)+'</div>';st.textContent='';
+  }finally{clearInterval(tick);btn.disabled=false;}
+}
 </script></body></html>
