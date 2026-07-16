@@ -21,45 +21,56 @@
  code{background:#f2f2f2;padding:1px 4px;font:12.5px ui-monospace,Consolas,monospace}
  .fn{font-size:12.5px;color:#555;border-top:1px solid #ddd;margin-top:26px;padding-top:8px}
  .tab{display:none} .tab.on{display:block}
+ .tab > h2:first-child{margin-top:0}
  .crumb{font:11px ui-monospace,Consolas,monospace;letter-spacing:.08em;margin-bottom:14px}
  .crumb a{color:#9AA0A6;text-decoration:none}
  .crumb a:hover{color:#111}
  .ph{margin:14px 0;padding:24px 18px;border:1px dashed #ddd;border-radius:4px;background:#f6f6f6;font:12.5px/1.5 ui-monospace,Consolas,monospace;color:#777}
+ #gate{position:fixed;inset:0;z-index:100;background:#fff;display:flex;align-items:center;justify-content:center}
+ #gatebox{width:280px}
+ #gatelabel{font:500 11px ui-monospace,Consolas,monospace;letter-spacing:.14em;text-transform:uppercase;color:#5F6368;margin-bottom:8px}
+ #gatepass{width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:4px;background:none;font:14px system-ui;color:#111;box-sizing:border-box}
+ #gatepass:focus{outline:none;border-color:#111}
+ #gateerr{min-height:20px;margin-top:7px;font:12px ui-monospace,Consolas,monospace;color:#B3432B}
 </style></head><body>
+<div id="gate">
+  <div id="gatebox">
+    <div id="gatelabel">Password</div>
+    <input id="gatepass" type="password" autocomplete="off">
+    <div id="gateerr"></div>
+  </div>
+</div>
 <div class="wrap">
 <div class="crumb"><a href="../">&larr; DEMOS</a></div>
 <h1>Atlas — unstructured opinion agent</h1>
 <nav>
- <button class="on" onclick="tab(event,'t1')">Architecture</button>
- <button onclick="tab(event,'t2')">Doc embeddings</button>
- <button onclick="tab(event,'t3')">Chunk embeddings</button>
- <button onclick="tab(event,'t4')">Exhaustive scan</button>
- <button onclick="tab(event,'t5')">The agent</button>
- <button onclick="tab(event,'t6')">Live demo</button>
+ <button class="on" onclick="tab(event,'t1')">Overview</button>
+ <button onclick="tab(event,'t2')">Embeddings</button>
+ <button onclick="tab(event,'t3')">Scan</button>
+ <button onclick="tab(event,'t4')">Agent</button>
+ <button onclick="tab(event,'t5')">Demo</button>
 </nav>
 
 <div id="t1" class="tab on">
-<h2>Architecture</h2>
+<h2>Overview</h2>
 <p>Three retrieval/compute routes plus an orchestrating LLM: document-level vectors for similarity and outliers, a chunk-level hybrid index for passage search, and a deterministic filter + exhaustive scan for completeness questions. Each tool survives only where the others fail.</p>
 <div class="ph">[ placeholder — system diagram: corpus &rarr; three routes &rarr; orchestrator &rarr; cited answer ]</div>
 </div>
 
 <div id="t2" class="tab">
-<h2>Document-level embeddings</h2>
+<h2>Embeddings</h2>
+<h3>Document level</h3>
 <p>One point per opinion. Answers the natively document-grained questions — "which opinions are like this one," precedent sets, outliers. Hybrid of lexical TF-IDF and common-direction-corrected neural vectors.</p>
 <div class="ph">[ placeholder — interactive 3D atlas: 583 docs, cluster rail, pinned deals ]</div>
 <p><code>find_similar</code> — precedents / "opinions like X" · <code>mode=outliers</code> for "what's unusual"</p>
-</div>
-
-<div id="t3" class="tab">
-<h2>Chunk-level embeddings</h2>
+<h3>Chunk level</h3>
 <p>~600-token chunks, section-header-aware, tables typed separately. The fast path for "where does anyone say X" — top-k with page citations, hybrid with BM25 so exact terms survive.</p>
 <div class="ph">[ placeholder — retrieval walkthrough: query &rarr; top passages with page cites ]</div>
 <p><code>search_passages</code> — hybrid chunk retrieval, top-k, never exhaustive<br>
 <code>read_document</code> — exact wording once search locates the spot</p>
 </div>
 
-<div id="t4" class="tab">
+<div id="t3" class="tab">
 <h2>Exhaustive scan</h2>
 <p>For questions where completeness matters ("average discount rate across all matching deals"): deterministic filter, then a cheap LLM reads every matching document and returns strict JSON, aggregated in code — not by the model.</p>
 <div class="ph">[ placeholder — scan pipeline: filter &rarr; per-doc extraction &rarr; calc &rarr; aggregate ]</div>
@@ -67,22 +78,32 @@
 <code>calc</code> — guarded arithmetic, no mental math on lists of numbers</p>
 </div>
 
-<div id="t5" class="tab">
+<div id="t4" class="tab">
 <h2>The agent</h2>
 <p>A strong orchestrator over six tools: pinned operationalizations live in tools, counts never come from top-k, every claim cites [deal, doc-kind, page], abstention names the missing thing.</p>
 <div class="ph">[ placeholder — tool table, system-prompt highlights, eval scorecard ]</div>
 <p><code>list_documents</code> · <code>search_passages</code> · <code>read_document</code> · <code>find_similar</code> · <code>scan_documents</code> · <code>calc</code></p>
 </div>
 
-<div id="t6" class="tab">
+<div id="t5" class="tab">
 <h2>Live demo</h2>
 <p>The agent itself: eval-set questions runnable live, a trace view of what it's doing tool-call by tool-call, and a type-your-own-query box.</p>
 <div class="ph">[ placeholder — interactive agent: canned questions · live trace · free query ]</div>
 </div>
 
-<div class="fn">583 documents · 223 deals · July 2026.</div>
+<div class="fn">ADA · July 2026.</div>
 </div>
 <script>
+(function(){
+  var PASS='ada_332', gate=document.getElementById('gate'), gp=document.getElementById('gatepass');
+  if(sessionStorage.getItem('atlas_unlocked')==='1'){gate.remove();return;}
+  gp.focus();
+  gp.addEventListener('keydown',function(e){
+    if(e.key!=='Enter')return;
+    if(gp.value===PASS){sessionStorage.setItem('atlas_unlocked','1');gate.remove();}
+    else{document.getElementById('gateerr').textContent='incorrect password';gp.value='';}
+  });
+})();
 function tab(e,id){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
 document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
 document.getElementById(id).classList.add('on');e.target.classList.add('on');}
