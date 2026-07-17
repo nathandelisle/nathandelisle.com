@@ -9,6 +9,8 @@
  h2{font-size:17px;margin:28px 0 8px;font-weight:650}
  h3{font-size:14.5px;margin:20px 0 6px;font-weight:650}
  p{margin:8px 0}
+ ul{margin:8px 0;padding-left:22px}
+ li{margin:4px 0}
  nav{display:flex;flex-wrap:wrap;gap:2px;border-bottom:1px solid #ccc;margin:14px 0 22px}
  nav button{border:0;background:none;padding:9px 14px;font:600 14px system-ui;color:#555;cursor:pointer;border-bottom:2px solid transparent}
  nav button.on{color:#111;border-bottom-color:#111}
@@ -26,6 +28,12 @@
  .crumb a{color:#9AA0A6;text-decoration:none}
  .crumb a:hover{color:#111}
  .ph{margin:14px 0;padding:24px 18px;border:1px dashed #ddd;border-radius:4px;background:#f6f6f6;font:12.5px/1.5 ui-monospace,Consolas,monospace;color:#777}
+ .jump{color:#1a6faf;text-decoration:none}
+ .jump:hover{text-decoration:underline}
+ .dgcap{font-size:12.5px;color:#777}
+ .dg g rect{transition:fill .12s,stroke .12s}
+ .dg g.rt{cursor:pointer}
+ .dg g.rt:hover rect{fill:#eef4fa;stroke:#1a6faf}
  .qrow{margin:10px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
  #qsel{max-width:100%;padding:7px 8px;border:1px solid #E5E7EB;border-radius:4px;font:13px system-ui;color:#111;background:#fff}
  #qbox{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #E5E7EB;border-radius:4px;font:14px system-ui;color:#111;resize:vertical}
@@ -57,50 +65,135 @@
 <div class="crumb"><a href="../">&larr; DEMOS</a></div>
 <h1>Atlas — unstructured opinion agent</h1>
 <nav>
- <button class="on" onclick="tab(event,'t1')">Overview</button>
- <button onclick="tab(event,'t2')">Embeddings</button>
- <button onclick="tab(event,'t3')">Scan</button>
- <button onclick="tab(event,'t4')">Agent</button>
- <button onclick="tab(event,'t5')">Demo</button>
+ <button class="on" data-t="t1" onclick="tabTo('t1')">Overview</button>
+ <button data-t="t2" onclick="tabTo('t2')">Embeddings</button>
+ <button data-t="t3" onclick="tabTo('t3')">Scan</button>
+ <button data-t="t4" onclick="tabTo('t4')">Agent</button>
+ <button data-t="t5" onclick="tabTo('t5')">Demo</button>
 </nav>
 
 <div id="t1" class="tab on">
 <h2>Overview</h2>
-<p>Three retrieval/compute routes plus an orchestrating LLM: document-level vectors for similarity and outliers, a chunk-level hybrid index for passage search, and a deterministic filter + exhaustive scan for completeness questions. Each tool survives only where the others fail.</p>
-<div class="ph">[ placeholder — system diagram: corpus &rarr; three routes &rarr; orchestrator &rarr; cited answer ]</div>
+<p>When a public company is sold, its board hires an investment bank to answer one question in writing: "Is the price fair to the shareholders?" The resulting documents, fairness opinions, are among the most litigated documents a bank produces. When a deal is challenged, the questions are always about the record: what exactly did the opinion cover, what did comparable opinions assume, and so on.</p>
+<p>Each deal leaves up to three public documents behind: the opinion letter itself, the description of the analysis filed with the merger proxy, and any supplemental disclosures filed afterward. This corpus holds 583 of them across 223 deals, 2007&ndash;2026.</p>
+<p>Today, consulting the record means someone manually digging through hundreds of filings. Interest in improving this process comes from the top of the firm: senior leadership wants to be able to ask arbitrary questions of these documents, and obtain answers on the spot.</p>
+<p>A structured assistant already exists, capable of answering questions with column-shaped answers (counts, breakdowns) from a curated dataset. But the answers to many questions that C-suite might ask live in <em>prose</em>, not columns: what an opinion said, how it was worded, what assumptions comparable deals used. Answering those requires working from the raw filings themselves.</p>
+<p>The existing unstructured assistant is a model with the documents stuffed into its context window. This fails for several reasons:</p>
+<ul>
+<li>It can't see the full corpus: a context window fits only a few dozen opinions out of 583.</li>
+<li>It has no tools. Computations occur inside the model's latent space, which works for simple arithmetic but fails for anything harder.</li>
+<li>It can't guarantee completeness: "average over X" is computed over whatever was retrieved, which (for the above reasons) is non-deterministic.</li>
+</ul>
+<p>The idea behind this unstructured assistant, Atlas, is to replace the single context window with an agent equipped with three simple tools: document-level embeddings for precedents and outliers, chunk-level embeddings for assumptions and wording, and an exhaustive scan for aggregates.</p>
+
+<h2>Architecture</h2>
+<p>One question, one orchestrating model, three routes: the agent picks whichever route can guarantee what the question needs, and every claim in the answer carries a citation back to a filing and page.</p>
+<svg class="dg" viewBox="0 0 760 392" style="max-width:760px;width:100%;font:11px system-ui" role="img">
+<defs><marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L8,4L0,8z" fill="#9AA0A6"/></marker></defs>
+<g><rect x="290" y="6" width="180" height="38" rx="19" fill="#f6f6f6" stroke="#ccc"/>
+<text x="380" y="29" text-anchor="middle" style="font:600 13px system-ui" fill="#111">Question</text>
+<title>Asked in plain English: what did comparable deals assume? which opinions are unusual? average X across all deals that&hellip;</title></g>
+<line x1="380" y1="44" x2="380" y2="66" stroke="#9AA0A6" marker-end="url(#arr)"/>
+<g class="rt" onclick="tabTo('t4')"><rect x="220" y="70" width="320" height="52" rx="6" fill="#fff" stroke="#111"/>
+<text x="380" y="91" text-anchor="middle" style="font:600 13px system-ui" fill="#111">Agent</text>
+<text x="380" y="108" text-anchor="middle" fill="#777">picks the cheapest route that guarantees the answer</text>
+<title>A strong model (claude-opus-4-8) that routes between tools, never invents a corpus fact, and cites every claim. Click for the full tool set and rules.</title></g>
+<line x1="295" y1="122" x2="140" y2="172" stroke="#9AA0A6" marker-end="url(#arr)"/>
+<line x1="380" y1="122" x2="380" y2="172" stroke="#9AA0A6" marker-end="url(#arr)"/>
+<line x1="465" y1="122" x2="620" y2="172" stroke="#9AA0A6" marker-end="url(#arr)"/>
+<g class="rt" onclick="tabTo('t2')"><rect x="15" y="176" width="226" height="78" rx="6" fill="#fff" stroke="#ccc"/>
+<text x="128" y="199" text-anchor="middle" style="font:600 13px system-ui" fill="#111">Document embeddings</text>
+<text x="128" y="217" text-anchor="middle" fill="#777">"which opinions are like this one?"</text>
+<text x="128" y="234" text-anchor="middle" fill="#777">583 documents &middot; precedents &amp; outliers</text>
+<title>One vector per document. The route for precedent sets and outliers — questions about whole opinions. Guarantee: a ranking over all 583 documents at once.</title></g>
+<g class="rt" onclick="tabTo('t2')"><rect x="267" y="176" width="226" height="78" rx="6" fill="#fff" stroke="#ccc"/>
+<text x="380" y="199" text-anchor="middle" style="font:600 13px system-ui" fill="#111">Passage search</text>
+<text x="380" y="217" text-anchor="middle" fill="#777">"where does it say X?"</text>
+<text x="380" y="234" text-anchor="middle" fill="#777">9,588 chunks &middot; meaning + keyword</text>
+<title>Top-k retrieval over ~600-token passages, every hit citable to a page. The route for wording, assumptions, findings. Never used for counting — it can't promise completeness.</title></g>
+<g class="rt" onclick="tabTo('t3')"><rect x="519" y="176" width="226" height="78" rx="6" fill="#fff" stroke="#ccc"/>
+<text x="632" y="199" text-anchor="middle" style="font:600 13px system-ui" fill="#111">Exhaustive scan</text>
+<text x="632" y="217" text-anchor="middle" fill="#777">"compute across every matching doc"</text>
+<text x="632" y="234" text-anchor="middle" fill="#777">deterministic filter &middot; every doc read</text>
+<title>A deterministic filter picks the universe, then every matching document is read — free regex, or a cheap model extracting values. Guarantee: completeness; nothing matching is skipped.</title></g>
+<line x1="128" y1="254" x2="305" y2="306" stroke="#9AA0A6" marker-end="url(#arr)"/>
+<line x1="380" y1="254" x2="380" y2="306" stroke="#9AA0A6" marker-end="url(#arr)"/>
+<line x1="632" y1="254" x2="455" y2="306" stroke="#9AA0A6" marker-end="url(#arr)"/>
+<g><rect x="230" y="310" width="300" height="52" rx="6" fill="#f6f6f6" stroke="#ccc"/>
+<text x="380" y="331" text-anchor="middle" style="font:600 13px system-ui" fill="#111">Cited answer</text>
+<text x="380" y="349" text-anchor="middle" style="font:10.5px ui-monospace,Consolas,monospace" fill="#777">[Target ~ Acquirer, doc-kind, p.N]</text>
+<title>Answer first, one line of method, caveats if any — and every factual claim carries a citation that can be checked against the filing in seconds.</title></g>
+</svg>
+<p class="dgcap">Hover a box for what it guarantees; click a route to jump to its tab. A fourth, unglamorous route — exact counts over the document manifest — answers "how many" questions for free.</p>
+<p>The rest of this page:</p>
+<ul>
+<li><a class="jump" href="#" onclick="tabTo('t2');return false">Embeddings</a> — the two vector layers: whole documents for "what's similar," passages for "where does it say that."</li>
+<li><a class="jump" href="#" onclick="tabTo('t3');return false">Scan</a> — the completeness tool: read every matching document, aggregate in code.</li>
+<li><a class="jump" href="#" onclick="tabTo('t4');return false">Agent</a> — the orchestrator, its rules, and how it was evaluated.</li>
+<li><a class="jump" href="#" onclick="tabTo('t5');return false">Demo</a> — ask the corpus yourself, live.</li>
+</ul>
 </div>
 
 <div id="t2" class="tab">
 <h2>Embeddings</h2>
-<h3>Document level</h3>
-<p>One point per opinion. Answers the natively document-grained questions — "which opinions are like this one," precedent sets, outliers. Hybrid of lexical TF-IDF and common-direction-corrected neural vectors.</p>
-<div class="ph">[ placeholder — interactive 3D atlas: 583 docs, cluster rail, pinned deals ]</div>
-<p><code>find_similar</code> — precedents / "opinions like X" · <code>mode=outliers</code> for "what's unusual"</p>
-<h3>Chunk level</h3>
-<p>~600-token chunks, section-header-aware, tables typed separately. The fast path for "where does anyone say X" — top-k with page citations, hybrid with BM25 so exact terms survive.</p>
-<div class="ph">[ placeholder — retrieval walkthrough: query &rarr; top passages with page cites ]</div>
-<p><code>search_passages</code> — hybrid chunk retrieval, top-k, never exhaustive<br>
-<code>read_document</code> — exact wording once search locates the spot</p>
+<p>Every document is cut into passages of roughly 600 tokens, and every passage gets a vector. That one pass yields two layers: passage vectors for finding <em>where</em> something is said, and document vectors — built from each document's passages — for finding <em>which</em> documents resemble each other. The two layers answer different questions and power different tools.</p>
+
+<h3>Document level — "which opinions are like this one?"</h3>
+<p>One point per document. This is the layer for precedent questions ("what's the precedent set for a conflicts-committee buy-in?") and for outliers ("which letters are worded least like the rest?") — questions that are natively about whole opinions, where working from passages would just mean re-aggregating back up to documents.</p>
+<p>Two complementary similarity signals are averaged. A lexical signal scores documents by their distinctive vocabulary. A semantic signal (neural embeddings pooled from passage vectors) captures meaning — but pooled vectors share a large "this is a fairness opinion" component that makes every document look alike, so the shared directions are removed before use. Measured on a 143-query benchmark over six known document families, the hybrid beats either signal alone (macro precision@5 0.67 vs 0.65 semantic-only, 0.55 lexical-only).</p>
+<div class="ph">[ visual to come — the 3D atlas: 583 documents, clustered, with pinned landmark deals ]</div>
+
+<h3>Chunk level — "where does it say that?"</h3>
+<p>Passages are cut at natural paragraph boundaries with their section headings attached, and the 1,067 tables in the filings are kept as their own typed chunks — a DCF assumptions table should be findable <em>as a table</em>. 9,588 chunks in total, each carrying deal, document kind, year, and page, so every search hit is citable to the page.</p>
+<p>Search is hybrid: the meaning vector finds paraphrases ("terminal value assumptions" finds the perpetuity-growth discussion), while a keyword channel protects exact tokens — tickers, "8point3", dollar amounts — that meaning vectors blur. Near-identical boilerplate shared across deals is down-weighted so it doesn't crowd out deal-specific passages, but stays reachable when the question is about the standard language itself.</p>
+<p>On eval questions with a known ground-truth passage, the right passage lands in the top five 9 times out of 9, and at rank one in 7 of 9.</p>
+<div class="ph">[ visual to come — a retrieval walkthrough: query &rarr; top passages with page citations ]</div>
+
+<p>These layers power three of the agent's tools: <code>find_similar</code> (precedents and outliers), <code>search_passages</code> (passage retrieval with citations), and <code>read_document</code> (exact pages, once search has located the spot).</p>
 </div>
 
 <div id="t3" class="tab">
 <h2>Exhaustive scan</h2>
-<p>For questions where completeness matters ("average discount rate across all matching deals"): deterministic filter, then a cheap LLM reads every matching document and returns strict JSON, aggregated in code — not by the model.</p>
-<div class="ph">[ placeholder — scan pipeline: filter &rarr; per-doc extraction &rarr; calc &rarr; aggregate ]</div>
-<p><code>scan_documents</code> — mode=regex (free, exact) · mode=extract (per-doc LLM reader)<br>
-<code>calc</code> — guarded arithmetic, no mental math on lists of numbers</p>
+<p>Search has a structural limit: it returns the best few matches, and can never promise there wasn't an eleventh document it missed. Some questions are exactly about completeness — "the average discount rate across healthcare deals since 2024" is wrong if even one matching document is skipped. Those questions get their own tool.</p>
+<p><code>scan_documents</code> runs in two steps. A deterministic filter picks the universe (year, document kind, deal — exact metadata, no model involved). Then every document in the universe is read, in one of two modes:</p>
+<ul>
+<li><b>regex</b> — free and exact: pattern counts per document, with sample snippets. Example: counting opinion letters addressed to a conflicts committee by scanning each letter's addressee block.</li>
+<li><b>extract</b> — a cheap model (claude-haiku-4.5) reads each document and returns exactly the requested JSON fields, including a relevance flag so loosely-filtered documents are rejected by <em>reading them</em>, not by guessing from names. Roughly $0.01 per document.</li>
+</ul>
+<p>Aggregation is never done by a model: numeric fields get min/max/mean/median computed in code, and any further arithmetic goes through <code>calc</code>, a guarded calculator. The orchestrator is forbidden from doing mental math over lists of numbers.</p>
+<p>End to end, "what discount rates did healthcare DCF analyses use in the past two years?" becomes: filter to opinion descriptions from 2024 on &rarr; the reader model flags which are healthcare and extracts each discount-rate range &rarr; statistics computed in code &rarr; a range, a mean, and a per-deal table with citations.</p>
+<div class="ph">[ visual to come — the scan pipeline: filter &rarr; per-document extraction &rarr; aggregate ]</div>
 </div>
 
 <div id="t4" class="tab">
 <h2>The agent</h2>
-<p>A strong orchestrator over six tools: pinned operationalizations live in tools, counts never come from top-k, every claim cites [deal, doc-kind, page], abstention names the missing thing.</p>
-<div class="ph">[ placeholder — tool table, system-prompt highlights, eval scorecard ]</div>
-<p><code>list_documents</code> · <code>search_passages</code> · <code>read_document</code> · <code>find_similar</code> · <code>scan_documents</code> · <code>calc</code></p>
+<p>The orchestrator is claude-opus-4-8 with six tools and hard rules. The design principle, inherited from the structured assistant: definitions live in tools, where they are pinned and testable — the model routes, reads, and synthesizes with citations, and never invents a corpus fact.</p>
+<table>
+<thead><tr><th>Tool</th><th>Answers</th><th>Guarantee</th></tr></thead>
+<tbody>
+<tr><td><code>list_documents</code></td><td>how many, which deals, breakdowns by adviser / year / kind</td><td>exact counts over the manifest; free</td></tr>
+<tr><td><code>search_passages</code></td><td>"where does a document discuss X"</td><td>best-matching passages with page citations; never used to count</td></tr>
+<tr><td><code>read_document</code></td><td>the exact wording of specific pages</td><td>verbatim filing text</td></tr>
+<tr><td><code>find_similar</code></td><td>precedents ("opinions like X") and outliers</td><td>a ranking over every document in the volume</td></tr>
+<tr><td><code>scan_documents</code></td><td>count or extract something from every matching document</td><td>completeness by construction; regex free, reader ~$0.01/doc</td></tr>
+<tr><td><code>calc</code></td><td>arithmetic over tool outputs</td><td>deterministic; the model never does mental math</td></tr>
+</tbody>
+</table>
+<p>The rules that do the most work:</p>
+<ul>
+<li>Counts never come from search — top-k retrieval is not exhaustive, so anything shaped like "how many" or "all deals that&hellip;" must go through the manifest or a scan.</li>
+<li>Every factual claim carries a citation, [Target ~ Acquirer, doc-kind, p.N], checkable against the filing in seconds.</li>
+<li>Every count states its operationalization: which field, which pattern, which universe.</li>
+<li>Scope precision: what an opinion expressly does <em>not</em> address is reported as carefully as what it does — a fairness conclusion is never extended to parties the letter excludes.</li>
+<li>Abstention is scoped: if the corpus can't support part of an answer, the agent names the missing piece and answers the rest. Asked about a deal that isn't in the corpus, it says so rather than summarizing from memory.</li>
+</ul>
+<p>Evaluated on a 12-question set spanning single-document lookups, metadata aggregates, text-scan counts, precedent retrieval, and two traps (a scope trap and an absent-document trap): 12/12 — including one case where the agent corrected the answer key, finding a growth-rate disclosure under a terminology variant the key's detector had missed, with the correct attribution. The honest caveat: the eval was authored alongside the system; the next round of questions should come from its users.</p>
+<p>Cost per question: metadata and lookups $0.04&ndash;0.07, outlier explanations ~$0.15, a full reader scan ~$0.40.</p>
 </div>
 
 <div id="t5" class="tab">
 <h2>Live demo</h2>
-<p>This runs the real agent: claude-opus-4-8 orchestrating the six tools over the full index, live. Typical question 15–60&nbsp;s; exhaustive-scan questions can take ~3&nbsp;min and cost real money — go easy.</p>
+<p>This runs the real agent: claude-opus-4-8 orchestrating the six tools over the full index, live. Typical question 15&ndash;60&nbsp;s; exhaustive-scan questions can take ~3&nbsp;min and cost real money — go easy.</p>
 <div class="qrow">
 <select id="qsel">
 <option value="">— pick an eval-set question, or type your own —</option>
@@ -138,9 +231,11 @@
     else{document.getElementById('gateerr').textContent='incorrect password';gp.value='';}
   });
 })();
-function tab(e,id){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
-document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
-document.getElementById(id).classList.add('on');e.target.classList.add('on');}
+function tabTo(id){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('on',t.id===id);});
+  document.querySelectorAll('nav button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-t')===id);});
+  window.scrollTo(0,0);
+}
 
 /* ---- live demo ---- */
 var API='https://ndelisle--opinion-agent-demo-api.modal.run', APIPASS='ada_332';
