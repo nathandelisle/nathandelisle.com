@@ -72,7 +72,6 @@
  .vic.bad{color:#993C1D}
  .vic.mid{color:#8A6D0B}
  .runtabs button.on .vic{color:#fff}
- .qcard .cardv{float:right;letter-spacing:3px;margin-left:6px}
  .rrnote{font-size:12.5px;color:#777}
  .ansbox.md{white-space:normal}
  .ansbox.md p{margin:7px 0}
@@ -544,11 +543,9 @@ function mdRender(s){
 function rrList(){
   var el=document.getElementById('rrlist'),h='',g=-1;
   RRQ.forEach(function(q){
-    var runs=RRUNS&&RRUNS[q.id]&&RRUNS[q.id].runs,cv='';
-    if(runs)cv='<span class="cardv">'+runs.map(function(r){return '<span class="vic '+vClass(r.verdict)+'">'+vIcon(r.verdict)+'</span>';}).join('')+'</span>';
     if(q.g!==g){g=q.g;h+='<div class="rrgh">'+RRGROUPS[g]+'</div>';}
     h+='<button class="qcard'+(q.id===curQ?' on':'')+'" onclick="rrSelect(\''+q.id+'\')">'
-      +'<span class="qid">'+q.id+'</span>'+esc(q.label)+cv+'</button>';
+      +'<span class="qid">'+q.id+'</span>'+esc(q.label)+'</button>';
   });
   el.innerHTML=h;
 }
@@ -560,7 +557,11 @@ function rrDetail(){
   var h='<div class="rrq">'+esc(q.q)+'</div>';
   h+='<div class="gtline"><b>A correct answer contains:</b> '+esc(q.gt)+'</div>';
   h+='<div class="runtabs">';
-  for(var i=0;i<3;i++)h+='<button class="'+(i===curRun?'on':'')+'" onclick="rrRun('+i+')">Run '+(i+1)+'</button>';
+  for(var i=0;i<3;i++){
+    var ri=runs&&runs[i];
+    h+='<button class="'+(i===curRun?'on':'')+'" onclick="rrRun('+i+')">Run '+(i+1)
+      +(ri?' <span class="vic '+vClass(ri.verdict)+'">'+vIcon(ri.verdict)+'</span>':'')+'</button>';
+  }
   var r=runs&&runs[curRun];
   if(r&&r.verdict)h+='<span class="badge '+vClass(r.verdict)+'">'+vIcon(r.verdict)+' '+esc(vLabel(r.verdict))+'</span>';
   h+='</div>';
