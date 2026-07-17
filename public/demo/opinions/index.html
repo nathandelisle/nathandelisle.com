@@ -64,9 +64,23 @@
  .runtabs button{border:1px solid #e2e2e2;background:#fff;border-radius:4px;padding:5px 13px;font:600 13px system-ui;color:#555;cursor:pointer}
  .runtabs button.on{background:#111;color:#fff;border-color:#111}
  .badge{font:600 11px ui-monospace,Consolas,monospace;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:3px;vertical-align:middle}
- .badge.pass{background:#E1F5EE;color:#0F6E56}
- .badge.fail{background:#FAECE7;color:#993C1D}
- .badge.review{background:#F1EFE8;color:#5F5E5A}
+ .badge.ok{background:#E1F5EE;color:#0F6E56}
+ .badge.bad{background:#FAECE7;color:#993C1D}
+ .badge.mid{background:#F5EFD8;color:#8A6D0B}
+ .vic{font-weight:700}
+ .vic.ok{color:#0F6E56}
+ .vic.bad{color:#993C1D}
+ .vic.mid{color:#8A6D0B}
+ .runtabs button.on .vic{color:#fff}
+ .qcard .cardv{float:right;letter-spacing:3px;margin-left:6px}
+ .rrnote{font-size:12.5px;color:#777}
+ .ansbox.md{white-space:normal}
+ .ansbox.md p{margin:7px 0}
+ .ansbox.md p:first-child{margin-top:0}
+ .ansbox.md p:last-child{margin-bottom:0}
+ .ansbox.md ul,.ansbox.md ol{margin:7px 0;padding-left:22px}
+ .ansbox.md li{margin:3px 0}
+ .ansbox.md blockquote{margin:8px 0;padding:6px 12px;border-left:3px solid #ddd;background:#f9f9f7;color:#444}
  .dg g rect{transition:stroke-width .12s}
  .dg g.rt{cursor:pointer}
  .dg g.rt:hover rect{stroke-width:2.4}
@@ -217,13 +231,14 @@
 <li>Arithmetic happens in the calculator tool.</li>
 <li>Respect the document type the question names; a letter, a description, and a supplement from the same deal say different things.</li>
 </ul>
-<p>I graded the agent against an evaluation set which was written before it existed, consisting of fourteen questions with verified answers, covering lookups, counts, precedent retrieval, and traps. The traps are questions designed to catch fabrication (a question about a deal the corpus doesn't contain (correct answer: say so)), and a question about parties an opinion expressly excludes (correct answer: the opinion doesn't cover them). Result: 14/14.</p>
+<p>I graded the agent against an evaluation set which was written before it existed, consisting of fourteen questions with verified answers, covering lookups, counts, precedent retrieval, and traps. The traps are questions designed to catch fabrication (a question about a deal the corpus doesn't contain (correct answer: say so)), and a question about parties an opinion expressly excludes (correct answer: the opinion doesn't cover them). Result: 41 correct, 1 in-between, 0 incorrect (14 questions &times; 3 runs).</p>
 </div>
 
 <div id="t5" class="tab">
 <h2>Recorded runs</h2>
 <p>This page hosts recorded runs of the Databricks production system. Each question was run three times.</p>
 <p>The agent itself lives at <code>Opinion Project/Agents/Atlas - Unstructured Agent</code>. The notebook <code>eval_on_test_set</code> runs the evaluation on the test set; <code>evaluate</code> takes arbitrary questions.</p>
+<p><b>Result: 41 correct, 1 in-between, 0 incorrect.</b></p>
 <div class="rr">
 <div class="rrlist" id="rrlist"></div>
 <div class="rrdetail" id="rrdetail"></div>
@@ -498,14 +513,42 @@ var RRQ=[
   gt:'A plain statement that no such document exists in the corpus.'}
 ];
 var RRUNS=null,curQ='U01',curRun=0;
-fetch('runs.json?v=1').then(function(r){return r.ok?r.json():null;})
+fetch('runs.json?v=2').then(function(r){return r.ok?r.json():null;})
   .then(function(j){RRUNS=j;rrDetail();rrList();}).catch(function(){});
+function vClass(v){return v==='correct'?'ok':v==='incorrect'?'bad':'mid';}
+function vIcon(v){return v==='correct'?'✓':v==='incorrect'?'✗':'?';}
+function vLabel(v){return v==='in-between'?'in-between':v;}
+function mdRender(s){
+  var h=esc(s);
+  h=h.replace(/\*\*([^*\n][^*]*?)\*\*/g,'<b>$1</b>');
+  h=h.replace(/(^|[\s(>])\*([^*\n]+?)\*(?=[\s.,;:)!?]|$)/gm,'$1<i>$2</i>');
+  h=h.replace(/`([^`\n]+?)`/g,'<code>$1</code>');
+  var out=[],para=[],list=null,quote=null;
+  function flushP(){if(para.length){out.push('<p>'+para.join('<br>')+'</p>');para=[];}}
+  function flushL(){if(list){out.push('<'+list.t+'>'+list.items.map(function(x){return '<li>'+x+'</li>';}).join('')+'</'+list.t+'>');list=null;}}
+  function flushQ(){if(quote){out.push('<blockquote>'+quote.join('<br>')+'</blockquote>');quote=null;}}
+  h.split('\n').forEach(function(ln){
+    var t=ln.trim();
+    if(!t){flushP();flushL();flushQ();return;}
+    var mQ=t.match(/^&gt; ?(.*)/);
+    if(mQ){flushP();flushL();(quote=quote||[]).push(mQ[1]);return;}
+    flushQ();
+    var mUl=t.match(/^[-•] (.*)/),mOl=t.match(/^(\d+)[.)] (.*)/);
+    if(mUl){flushP();if(!list||list.t!=='ul'){flushL();list={t:'ul',items:[]};}list.items.push(mUl[1]);return;}
+    if(mOl){flushP();if(!list||list.t!=='ol'){flushL();list={t:'ol',items:[]};}list.items.push(mOl[2]);return;}
+    flushL();para.push(t);
+  });
+  flushP();flushL();flushQ();
+  return out.join('');
+}
 function rrList(){
   var el=document.getElementById('rrlist'),h='',g=-1;
   RRQ.forEach(function(q){
+    var runs=RRUNS&&RRUNS[q.id]&&RRUNS[q.id].runs,cv='';
+    if(runs)cv='<span class="cardv">'+runs.map(function(r){return '<span class="vic '+vClass(r.verdict)+'">'+vIcon(r.verdict)+'</span>';}).join('')+'</span>';
     if(q.g!==g){g=q.g;h+='<div class="rrgh">'+RRGROUPS[g]+'</div>';}
     h+='<button class="qcard'+(q.id===curQ?' on':'')+'" onclick="rrSelect(\''+q.id+'\')">'
-      +'<span class="qid">'+q.id+'</span>'+esc(q.label)+'</button>';
+      +'<span class="qid">'+q.id+'</span>'+esc(q.label)+cv+'</button>';
   });
   el.innerHTML=h;
 }
@@ -517,22 +560,25 @@ function rrDetail(){
   var h='<div class="rrq">'+esc(q.q)+'</div>';
   h+='<div class="gtline"><b>A correct answer contains:</b> '+esc(q.gt)+'</div>';
   h+='<div class="runtabs">';
-  for(var i=0;i<3;i++)h+='<button class="'+(i===curRun?'on':'')+'" onclick="rrRun('+i+')">Run '+(i+1)+'</button>';
+  for(var i=0;i<3;i++){
+    var ri=runs&&runs[i];
+    h+='<button class="'+(i===curRun?'on':'')+'" onclick="rrRun('+i+')">Run '+(i+1)
+      +(ri?' <span class="vic '+vClass(ri.verdict)+'">'+vIcon(ri.verdict)+'</span>':'')+'</button>';
+  }
   var r=runs&&runs[curRun];
-  if(r&&r.verdict)h+='<span class="badge '+esc(r.verdict)+'">'+esc(r.verdict)+'</span>';
+  if(r&&r.verdict)h+='<span class="badge '+vClass(r.verdict)+'">'+vIcon(r.verdict)+' '+esc(vLabel(r.verdict))+'</span>';
   h+='</div>';
-  h+='<div class="ansbox">'+(r?esc(r.answer):'[Placeholder]')+'</div>';
+  h+=r?'<div class="ansbox md">'+mdRender(r.answer)+'</div>':'<div class="ansbox">[Placeholder]</div>';
   if(r&&r.work){
-    if(r.cost_usd!=null||r.secs!=null)
-      h+='<div class="costline">'+r.work.length+' tool call'+(r.work.length===1?'':'s')
-        +(r.cost_usd!=null?' · $'+Number(r.cost_usd).toFixed(4):'')
-        +(r.secs!=null?' · '+Math.round(r.secs)+'s':'')+'</div>';
+    h+='<div class="costline">'+r.work.length+' tool call'+(r.work.length===1?'':'s')
+      +(r.cost_usd!=null?' · $'+Number(r.cost_usd).toFixed(4):'')
+      +(r.secs!=null?' · '+(r.secs<10?r.secs.toFixed(1):Math.round(r.secs))+'s':'')+'</div>';
     h+='<details class="stepd"><summary>show work — '+r.work.length+' tool call'+(r.work.length===1?'':'s')+'</summary>';
     r.work.forEach(function(s){
-      h+='<pre>'+esc((s.step!=null?'step '+s.step+' · ':'')+s.tool+'('+JSON.stringify(s.args)+')\n'+(s.result_preview||''))+'</pre>';
+      h+='<pre>'+esc((s.step!=null?'step '+s.step+' · ':'')+s.tool+'('+JSON.stringify(s.args)+')\n-> '+(s.result_preview||''))+'</pre>';
     });
     h+='</details>';
-  }else{
+  }else if(!r){
     h+='<details class="stepd"><summary>show work — tool calls</summary><pre>[Placeholder — tool calls will appear when runs.json lands]</pre></details>';
   }
   document.getElementById('rrdetail').innerHTML=h;
