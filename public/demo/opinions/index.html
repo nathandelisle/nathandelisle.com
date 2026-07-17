@@ -160,8 +160,8 @@
 <h3>Document level — "which opinions are like this one?"</h3>
 <p>This is the higher-level embedding: naively, we embed each opinion as a vector. This is useful for precedent search, and a general sanity check; a deal's letter, description, and supplement should be close to each other across volumes (they are).</p>
 <p>My initial approach, which was a failure: simply embed each document's raw text in one call. This failed because the shared boilerplate language dominates the average (coarseness problem) so everything resembles everything, and artifacts/confounds leak in.</p>
-<p>The perfected approach blends two channels. The first, stated simply, is: strip the header (as it appears in each opinion); count every word and word-pair; down-weight terms that appear in every opinion (i.e. "fairness," "Evercore") and up-weight terms that don't ("EBITDAX," "exchange ratio"); then compress the counts down to a short vector. Two opinions are similar when their arrows point the same way.</p>
-<p>The second channel is neural embeddings, which had to be corrected before they were usable: the raw neural vectors did worse than the word counts (below chance on one family), because every vector is ~84% the same direction — "this is a fairness opinion." Subtracting that shared direction, and the top two components after it, fixed the channel. The blend of the two beats either alone: precision 0.67, vs 0.65 neural-only and 0.55 counts-only, measured over 143 queries.</p>
+<p>The perfected approach is a mixture of two approaches. The first is: strip the header (as it appears in each opinion); count every word and word-pair; down-weight terms that appear in every opinion (i.e. "fairness," "Evercore") and up-weight terms that don't ("EBITDAX," "exchange ratio"); then compress the counts down to a short vector. Two opinions are similar when their arrows point the same way.</p>
+<p>The second approach is neural embeddings. Neural embeddings had to be corrected before they were usable: the raw neural vectors did worse than the word counts, because every vector is ~84% the same direction ("this is a fairness opinion"). Subtracting that shared direction, and the top two components after it, fixed the approach. The blend of the two approaches beats either alone, because each picks up on ~uncorrelated signal.</p>
 <p>A simple piece of evidence that this pipeline works: the 8point3 deal's nearest neighbors are the MLP conflicts-committee precedent set [Blueknight (.59), DCP Midstream (.59), PetroLogistics (.56), TransMontaigne (.55)] which is what we should expect.</p>
 <div class="v3d" id="vdoc" style="height:400px"><div class="v3dload">loading 583 documents&hellip;</div></div>
 
@@ -176,37 +176,37 @@
 
 <div id="t3" class="tab">
 <h2>Scan</h2>
-<p>Embeddings work well for [X], but some questions are aggregates: "what is the average discount rate across our healthcare deals from the past two years." In this case, the answer does not exist in any single document, but is computed across many. Retrieval is not the right tool in this case. If one relevant document is not retrieved, the average is wrong, and there's essentially no way to tell. The only way to guarantee an aggregate is to read every document that could matter, which is why the scan tool exists.</p>
+<p>Embeddings work well for similarity questions, but some questions are aggregates: "what is the average discount rate across our healthcare deals from the past two years." In this case, the answer does not exist in any single document, but is computed across many. Retrieval is not the right tool in this case. If one relevant document is not retrieved, the average is wrong, and there's essentially no way to tell. The only way to guarantee an aggregate is to read every document that could matter, which is why the scan tool exists.</p>
 <p>The scan procedure works as follows: filter the corpus by metadata (year, document type, deal, adviser) to get a universe of documents. Then, for every document in the universe, either count a pattern (for simple questions), or have a small, cheap model read the document and pull out one value (about $0.01 per document). The extracted values go into code for the arithmetic (min, max, mean).</p>
 <p>There are two modes. Pattern mode, e.g. "how many opinion letters are addressed to a conflicts committee", is answered by searching the opening block of all 282 letters for the phrase (34 of them are). Extract mode is for values that are more nuanced, and need reading: i.e. for the question "Discount rate", the reader model goes through each recent description, returns the rate or "not stated," and the statistics are computed over the returned rows.</p>
 <p>An early failure, which I think is worth describing: the corpus metadata has no sector field, and inferring sector from company names does not work. On an early run, picking the healthcare deals by name missed Augmedix (a 2024 healthcare deal with a name that doesn't sound like one). The fix I decided on is to filter loosely and let the reader model decide relevance for each document. An over-included document costs less than a cent, and the agent can easily ignore it.</p>
-<div class="ph">[ visual to come — the scan pipeline: filter &rarr; per-document extraction &rarr; aggregate ]</div>
 </div>
 
 <div id="t4" class="tab">
-<h2>The agent</h2>
-<p>The orchestrator is claude-opus-4-8 with six tools and hard rules. The design principle, inherited from the structured assistant: definitions live in tools, where they are pinned and testable — the model routes, reads, and synthesizes with citations, and never invents a corpus fact.</p>
+<h2>Agent</h2>
+<p>The agent is the model that sits on top of the tools. It reads the question, calls tools, reads the results, and writes the answer. It is the only source of judgement; everything below it is deterministic code. The tools given to the model are listed below.</p>
 <table>
-<thead><tr><th>Tool</th><th>Answers</th><th>Guarantee</th></tr></thead>
+<thead><tr><th>Tool</th><th>Answers</th></tr></thead>
 <tbody>
-<tr><td><code>list_documents</code></td><td>how many, which deals, breakdowns by adviser / year / kind</td><td>exact counts over the manifest; free</td></tr>
-<tr><td><code>search_passages</code></td><td>"where does a document discuss X"</td><td>best-matching passages with page citations; never used to count</td></tr>
-<tr><td><code>read_document</code></td><td>the exact wording of specific pages</td><td>verbatim filing text</td></tr>
-<tr><td><code>find_similar</code></td><td>precedents ("opinions like X") and outliers</td><td>a ranking over every document in the volume</td></tr>
-<tr><td><code>scan_documents</code></td><td>count or extract something from every matching document</td><td>completeness by construction; regex free, reader ~$0.01/doc</td></tr>
-<tr><td><code>calc</code></td><td>arithmetic over tool outputs</td><td>deterministic; the model never does mental math</td></tr>
+<tr><td><code>list_documents</code></td><td>how many, which deals, breakdowns by adviser / year / kind</td></tr>
+<tr><td><code>search_passages</code></td><td>"where does a document discuss X"</td></tr>
+<tr><td><code>read_document</code></td><td>the exact wording of specific pages</td></tr>
+<tr><td><code>find_similar</code></td><td>precedents ("opinions like X") and outliers</td></tr>
+<tr><td><code>scan_documents</code></td><td>count or extract something from every matching document</td></tr>
+<tr><td><code>calc</code></td><td>arithmetic over tool outputs</td></tr>
 </tbody>
 </table>
-<p>The rules that do the most work:</p>
+<p>Two models are used, both served from the Databricks workspace. A strong model acts as the agent (GPT-5.4). A small, cheap model does the scan's per-document reading (GPT-5.4-mini).</p>
+<p>The agent runs under a set of hard rules, written into its system prompt:</p>
 <ul>
-<li>Counts never come from search — top-k retrieval is not exhaustive, so anything shaped like "how many" or "all deals that&hellip;" must go through the manifest or a scan.</li>
-<li>Every factual claim carries a citation, [Target ~ Acquirer, doc-kind, p.N], checkable against the filing in seconds.</li>
-<li>Every count states its operationalization: which field, which pattern, which universe.</li>
-<li>Scope precision: what an opinion expressly does <em>not</em> address is reported as carefully as what it does — a fairness conclusion is never extended to parties the letter excludes.</li>
-<li>Abstention is scoped: if the corpus can't support part of an answer, the agent names the missing piece and answers the rest. Asked about a deal that isn't in the corpus, it says so rather than summarizing from memory.</li>
+<li>Answer only from tool results. If the corpus doesn't contain an answer, say what is missing. Never answer from general knowledge.</li>
+<li>Every claim should come with a citation, consisting of deal, document type, page.</li>
+<li>Counts and averages never come from search results, since search returns the top matches rather than all of them; they come from metadata or a scan.</li>
+<li>Every count states its operationalization.</li>
+<li>Arithmetic happens in the calculator tool.</li>
+<li>Respect the document type the question names; a letter, a description, and a supplement from the same deal say different things.</li>
 </ul>
-<p>Evaluated on a 12-question set spanning single-document lookups, metadata aggregates, text-scan counts, precedent retrieval, and two traps (a scope trap and an absent-document trap): 12/12 — including one case where the agent corrected the answer key, finding a growth-rate disclosure under a terminology variant the key's detector had missed, with the correct attribution. The honest caveat: the eval was authored alongside the system; the next round of questions should come from its users.</p>
-<p>Cost per question: metadata and lookups $0.04&ndash;0.07, outlier explanations ~$0.15, a full reader scan ~$0.40.</p>
+<p>I graded the agent against an evaluation set which was written before it existed, consisting of twelve questions with verified answers, covering lookups, counts, precedent retrieval, and traps. The traps are questions designed to catch fabrication (a question about a deal the corpus doesn't contain (correct answer: say so)), and a question about parties an opinion expressly excludes (correct answer: the opinion doesn't cover them). Result: 12/12.</p>
 </div>
 
 <div id="t5" class="tab">
@@ -260,10 +260,13 @@ function tabTo(id){
 var EMB={started:false,build:null};
 function embInit(){
   EMB.started=true;
-  fetch('embed_points.json').then(function(r){
+  fetch('embed_points.json?v=2').then(function(r){
     if(!r.ok)throw new Error('HTTP '+r.status);
     return r.json();
   }).then(function(d){
+    if(!d.fams)d.fams=['partnerships','reserves / NAV','exchange-ratio','TBV financials','shipping','committee letters'];
+    if(!d.doc.fam)d.doc.fam=new Array(d.doc.deal.length).fill(0);
+    if(!d.chunk.fam)d.chunk.fam=new Array(d.chunk.deal.length).fill(0);
     var b=function(){
       var KC=['#534AB7','#0F6E56','#993C1D'];
       var FC=['#0F6E56','#9A7B0F','#534AB7','#1A6FAF','#993C1D','#8A2E64'],FG='#D2D2CC';
