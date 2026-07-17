@@ -74,7 +74,7 @@
 
 <div id="t1" class="tab on">
 <h2>Overview</h2>
-<p>When a public company is sold, its board hires an investment bank to answer one question in writing: "Is the price fair to the shareholders?" The resulting documents, fairness opinions, are among the most litigated documents a bank produces. When a deal is challenged, the questions are always about the record: what exactly did the opinion cover, what did comparable opinions assume, and so on.</p>
+<p>When a public company is sold, its board hires an investment bank to answer in writing: "Is the price fair to the shareholders?" The resulting documents, fairness opinions, are among the most litigated documents a bank produces. When a deal is challenged, the questions are always about the record: what exactly did the opinion cover, what did comparable opinions assume, and so on.</p>
 <p>Today, consulting the record means someone manually digging through hundreds of filings. Interest in improving this process comes from the top of the firm: senior leadership wants to be able to ask arbitrary questions of these documents, and obtain answers on the spot.</p>
 <p>A structured assistant already exists, which is capable of answering questions with column-shaped answers (e.g. counts, breakdowns) from a curated dataset. But the answers to many questions that C-suite might ask live in <em>prose</em>, not columns: what an opinion said, how it was worded, what assumptions comparable deals used. Answering those requires working from the raw filings themselves.</p>
 <p>The existing unstructured assistant is a model with the documents stuffed into its context window. This fails for several reasons:</p>
@@ -83,10 +83,13 @@
 <li>It has no tools. Computations occur inside the model's latent space, which works for simple arithmetic but fails for anything harder.</li>
 <li>It can't guarantee completeness: "Average over [X]" is computed over whatever was retrieved, which (for the above reasons) is non-deterministic.</li>
 </ul>
-<p>The idea behind this unstructured assistant, Atlas, is to replace the single context window with an agent equipped with three simple tools: document-level embeddings for precedents/outliers, chunk-level embeddings for assumptions/wording, and a scan for aggregates.</p>
+<p>The idea behind this unstructured assistant, Atlas, is to replace the single context window with an agent equipped with three simple tools: document-level embeddings for precedents/outliers, chunk-level embeddings for assumptions/wording, and a scan for aggregates, plus a few trivial tools: a metadata counter, a page reader, a calculator. This approach has the advantage of simplicity: each tool is a small deterministic function, and the model underlying the agent is used in its ideal capacity, for judgment.</p>
 
 <h2>Architecture</h2>
-<p>One question, one orchestrating model, three routes: the agent picks whichever route can guarantee what the question needs, and every claim in the answer carries a citation back to a filing and page.</p>
+<p>When a question is asked, it is sent to an LLM (henceforth the "agent"). The agent reads the question, picks the appropriate tool to call, inspects the result, and calls further tools if needed. When it has enough evidence, it writes the answer, with a citation attached to each claim.</p>
+<p>The most important decision is the first one: which tool to use. A lookup goes to passage search, a precedent question goes to document similarity, a count or average goes to scan. If the agent routes wrong, the answer will be wrong, so the agent's system prompt contains explicit description of each tool and its limitations.</p>
+<p>Each opinion is embedded at two levels. Document-level vectors represent each opinion as a whole, and are used for precedent and outlier questions. Chunk-level vectors represent individual passages, and are used to find where something is said, or to locate specific concepts. Embeddings can't answer aggregate questions, because retrieval returns the top matches rather than all of them, so the "scan" tool uses a cheap language model to read every document that passes a metadata filter. The remaining tools (metadata counter, page reader, calculator) exist so the model doesn't count or do arithmetic itself.</p>
+<p>I also created an evaluation set consisting of questions with verified answers, including traps (like questions about deals that aren't in the corpus).</p>
 <svg class="dg" viewBox="0 0 760 392" style="max-width:760px;width:100%;font:11px system-ui" role="img">
 <defs><marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L8,4L0,8z" fill="#9AA0A6"/></marker></defs>
 <g><rect x="290" y="6" width="180" height="38" rx="19" fill="#f6f6f6" stroke="#ccc"/>
@@ -123,14 +126,8 @@
 <text x="380" y="349" text-anchor="middle" style="font:10.5px ui-monospace,Consolas,monospace" fill="#777">[Target ~ Acquirer, doc-kind, p.N]</text>
 <title>Answer first, one line of method, caveats if any — and every factual claim carries a citation that can be checked against the filing in seconds.</title></g>
 </svg>
-<p class="dgcap">Hover a box for what it guarantees; click a route to jump to its tab. A fourth, unglamorous route — exact counts over the document manifest — answers "how many" questions for free.</p>
-<p>The rest of this page:</p>
-<ul>
-<li><a class="jump" href="#" onclick="tabTo('t2');return false">Embeddings</a> — the two vector layers: whole documents for "what's similar," passages for "where does it say that."</li>
-<li><a class="jump" href="#" onclick="tabTo('t3');return false">Scan</a> — the completeness tool: read every matching document, aggregate in code.</li>
-<li><a class="jump" href="#" onclick="tabTo('t4');return false">Agent</a> — the orchestrator, its rules, and how it was evaluated.</li>
-<li><a class="jump" href="#" onclick="tabTo('t5');return false">Demo</a> — ask the corpus yourself, live.</li>
-</ul>
+<p class="dgcap">Hover a box for what it guarantees; click a route to jump to its tab.</p>
+<p>The following tabs describe the <a class="jump" href="#" onclick="tabTo('t2');return false">embeddings</a>, the <a class="jump" href="#" onclick="tabTo('t3');return false">scan</a>, and the <a class="jump" href="#" onclick="tabTo('t4');return false">agent</a>, followed by a <a class="jump" href="#" onclick="tabTo('t5');return false">live demo</a>.</p>
 </div>
 
 <div id="t2" class="tab">
