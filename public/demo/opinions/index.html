@@ -90,7 +90,7 @@
 <p>The most important decision is the first one: which tool to use. A lookup goes to passage search, a precedent question goes to document similarity, a count or average goes to scan. If the agent routes wrong, the answer will be wrong, so the agent's system prompt contains explicit description of each tool and its limitations.</p>
 <p>Each opinion is embedded at two levels. Document-level vectors represent each opinion as a whole, and are used for precedent and outlier questions. Chunk-level vectors represent individual passages, and are used to find where something is said, or to locate specific concepts. Embeddings can't answer aggregate questions, because retrieval returns the top matches rather than all of them, so the "scan" tool uses a cheap language model to read every document that passes a metadata filter. The remaining tools (metadata counter, page reader, calculator) exist so the model doesn't count or do arithmetic itself.</p>
 <p>I also created an evaluation set consisting of questions with verified answers, including traps (like questions about deals that aren't in the corpus).</p>
-<svg class="dg" width="100%" viewBox="0 0 680 424" role="img" aria-label="Atlas architecture: a question goes to the agent, which loops with tools grounded in the corpus, and returns a cited answer." style="max-width:680px;display:block;margin:0 auto;font-family:inherit">
+<svg class="dg" width="100%" viewBox="0 0 680 432" role="img" aria-label="Atlas architecture: a question goes to the agent, which loops with tools grounded in the corpus, and returns a cited answer." style="max-width:680px;display:block;margin:0 auto;font-family:inherit">
 <defs>
 <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
 <path d="M2 1L8 5L2 9" fill="none" stroke="#5F5E5A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -108,10 +108,10 @@
 <text class="tt" x="340" y="58" text-anchor="middle" fill="#26215C">Agent</text></g>
 <g><rect x="490" y="36" width="150" height="44" rx="4" fill="#F1EFE8" stroke="#5F5E5A"/>
 <text class="tt" x="565" y="58" text-anchor="middle" fill="#2C2C2A">Cited answer</text></g>
-<line class="ln" x1="190" y1="58" x2="244" y2="58" marker-end="url(#arr)"/>
-<line class="ln" x1="430" y1="58" x2="484" y2="58" marker-end="url(#arr)"/>
-<path class="ln" d="M315 80 C 305 115, 305 145, 315 174" marker-end="url(#arr)"/>
-<path class="ln" d="M365 174 C 375 145, 375 115, 365 82" marker-end="url(#arr)"/>
+<line class="ln" x1="196" y1="58" x2="243" y2="58" marker-end="url(#arr)"/>
+<line class="ln" x1="436" y1="58" x2="483" y2="58" marker-end="url(#arr)"/>
+<path class="ln" d="M315 86 C 305 118, 305 148, 315 176" marker-end="url(#arr)"/>
+<path class="ln" d="M365 178 C 375 148, 375 118, 365 88" marker-end="url(#arr)"/>
 <text class="ts" x="297" y="130" text-anchor="end" fill="#666">calls</text>
 <text class="ts" x="383" y="130" text-anchor="start" fill="#666">results</text>
 <rect x="40" y="184" width="600" height="150" rx="6" fill="none" stroke="#bbb" stroke-width="1" stroke-dasharray="5 4"/>
@@ -127,9 +127,9 @@
 <text class="ts" x="541" y="250" text-anchor="middle" fill="#993C1D">aggregates</text></g>
 <g class="rt" onclick="tabTo('t4')"><rect x="60" y="278" width="559" height="40" rx="4" fill="#F1EFE8" stroke="#5F5E5A"/>
 <text class="ts" x="339" y="298" text-anchor="middle" fill="#2C2C2A">Utilities (metadata counter &middot; page reader &middot; calculator)</text></g>
-<line class="ln" x1="340" y1="334" x2="340" y2="366" marker-end="url(#arr)"/>
-<g><rect x="40" y="370" width="600" height="44" rx="4" fill="#F1EFE8" stroke="#5F5E5A"/>
-<text class="tt" x="340" y="392" text-anchor="middle" fill="#2C2C2A">Corpus: 583 documents, 223 deals</text></g>
+<line class="ln" x1="340" y1="340" x2="340" y2="371" marker-end="url(#arr)"/>
+<g><rect x="40" y="378" width="600" height="44" rx="4" fill="#F1EFE8" stroke="#5F5E5A"/>
+<text class="tt" x="340" y="400" text-anchor="middle" fill="#2C2C2A">Corpus: 583 documents, 223 deals</text></g>
 </svg>
 <p>The following tabs describe the <a class="jump" href="#" onclick="tabTo('t2');return false">embeddings</a>, the <a class="jump" href="#" onclick="tabTo('t3');return false">scan</a>, and the <a class="jump" href="#" onclick="tabTo('t4');return false">agent itself</a>, followed by a <a class="jump" href="#" onclick="tabTo('t5');return false">live demo</a>.</p>
 </div>
