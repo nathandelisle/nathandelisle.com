@@ -160,7 +160,7 @@
 <g><rect x="40" y="378" width="600" height="44" rx="4" fill="#F1EFE8" stroke="#5F5E5A"/>
 <text class="tt" x="340" y="400" text-anchor="middle" fill="#2C2C2A">Corpus: 583 documents, 223 deals</text></g>
 </svg>
-<p>The following tabs describe the <a class="jump" href="#" onclick="tabTo('t2');return false">embeddings</a>, the <a class="jump" href="#" onclick="tabTo('t3');return false">scan</a>, and the <a class="jump" href="#" onclick="tabTo('t4');return false">agent itself</a>, followed by <a class="jump" href="#" onclick="tabTo('t5');return false">recorded runs</a>.</p>
+<p>The following tabs describe the <a class="jump" href="#" onclick="tabTo('t2');return false">embeddings</a>, the <a class="jump" href="#" onclick="tabTo('t3');return false">scan</a>, and the <a class="jump" href="#" onclick="tabTo('t4');return false">agent itself</a>, followed by some <a class="jump" href="#" onclick="tabTo('t5');return false">recorded runs</a>.</p>
 </div>
 
 <div id="t2" class="tab">
@@ -177,8 +177,8 @@
 <div class="v3d" id="vdoc" style="height:400px"><div class="v3dload">loading 583 documents&hellip;</div></div>
 
 <h3>Chunk level — "where does it say that?"</h3>
-<p>This is the lower-level embedding: each passage is embedded as a vector. There are 9,588 vectors total (8,521 text passages and 1,067 tables). This is the layer the agent directly reads from. I attached the metadata to each vector [every hit carries (deal, document, page)] so citations are very native and natural for the model to give.</p>
-<p>Initial approach, naive failures: using doc vectors for specific questions (i.e., the terminal-value paragraph is only ~0.3% of its full document, so using document-level vectors matches "is this a pharma opinion," not the paragraph in question) and fixed-width chunking (which leads to cut/orphans mid-sentence/mid-table.)</p>
+<p>This is the lower-level embedding: each passage is embedded as a vector. There are 9,588 vectors total (8,521 text passages and 1,067 tables). This is the layer the agent directly reads from. I attached the metadata to each vector [every hit carries (deal, document, page)] so citations are native and natural for the model to give.</p>
+<p>Initial approach: using doc vectors for specific questions (i.e., the terminal-value paragraph is only ~0.3% of its full document, so using document-level vectors matches "is this a pharma opinion," not the paragraph in question) and fixed-width chunking (which leads to cut/orphans mid-sentence/mid-table.)</p>
 <p>The corrected method: cut each document into pieces of about a page, breaking only at paragraph or sentence ends; tag each piece with its deal, document, and page; keep tables as their own pieces; prepend each piece's section heading so a table of numbers still knows it belongs to the DCF. Embed every piece; embed the question the same way. Then, return the pieces whose arrows point most nearly the same direction, each with deal, document, page.</p>
 <div class="v3d" id="vchunk" style="height:440px"><div class="v3dload">loading 9,588 passages&hellip;</div></div>
 
