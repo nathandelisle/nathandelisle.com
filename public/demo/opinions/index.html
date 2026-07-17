@@ -75,16 +75,15 @@
 <div id="t1" class="tab on">
 <h2>Overview</h2>
 <p>When a public company is sold, its board hires an investment bank to answer one question in writing: "Is the price fair to the shareholders?" The resulting documents, fairness opinions, are among the most litigated documents a bank produces. When a deal is challenged, the questions are always about the record: what exactly did the opinion cover, what did comparable opinions assume, and so on.</p>
-<p>Each deal leaves up to three public documents behind: the opinion letter itself, the description of the analysis filed with the merger proxy, and any supplemental disclosures filed afterward. This corpus holds 583 of them across 223 deals, 2007&ndash;2026.</p>
 <p>Today, consulting the record means someone manually digging through hundreds of filings. Interest in improving this process comes from the top of the firm: senior leadership wants to be able to ask arbitrary questions of these documents, and obtain answers on the spot.</p>
-<p>A structured assistant already exists, capable of answering questions with column-shaped answers (counts, breakdowns) from a curated dataset. But the answers to many questions that C-suite might ask live in <em>prose</em>, not columns: what an opinion said, how it was worded, what assumptions comparable deals used. Answering those requires working from the raw filings themselves.</p>
+<p>A structured assistant already exists, which is capable of answering questions with column-shaped answers (e.g. counts, breakdowns) from a curated dataset. But the answers to many questions that C-suite might ask live in <em>prose</em>, not columns: what an opinion said, how it was worded, what assumptions comparable deals used. Answering those requires working from the raw filings themselves.</p>
 <p>The existing unstructured assistant is a model with the documents stuffed into its context window. This fails for several reasons:</p>
 <ul>
 <li>It can't see the full corpus: a context window fits only a few dozen opinions out of 583.</li>
 <li>It has no tools. Computations occur inside the model's latent space, which works for simple arithmetic but fails for anything harder.</li>
-<li>It can't guarantee completeness: "average over X" is computed over whatever was retrieved, which (for the above reasons) is non-deterministic.</li>
+<li>It can't guarantee completeness: "Average over [X]" is computed over whatever was retrieved, which (for the above reasons) is non-deterministic.</li>
 </ul>
-<p>The idea behind this unstructured assistant, Atlas, is to replace the single context window with an agent equipped with three simple tools: document-level embeddings for precedents and outliers, chunk-level embeddings for assumptions and wording, and an exhaustive scan for aggregates.</p>
+<p>The idea behind this unstructured assistant, Atlas, is to replace the single context window with an agent equipped with three simple tools: document-level embeddings for precedents/outliers, chunk-level embeddings for assumptions/wording, and a scan for aggregates.</p>
 
 <h2>Architecture</h2>
 <p>One question, one orchestrating model, three routes: the agent picks whichever route can guarantee what the question needs, and every claim in the answer carries a citation back to a filing and page.</p>
