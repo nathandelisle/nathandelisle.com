@@ -60,7 +60,6 @@
  .rrq{font-size:15px;font-weight:650;margin:0 0 10px}
  .gtline{font-size:13.5px;color:#5F6368;background:#f6f6f6;border-left:3px solid #ddd;padding:8px 12px;margin:10px 0}
  .gtline b{color:#444}
- .trapline{font-size:13px;color:#777;font-style:italic;margin:8px 0}
  .runtabs{display:flex;gap:6px;margin:14px 0 10px;align-items:center}
  .runtabs button{border:1px solid #e2e2e2;background:#fff;border-radius:4px;padding:5px 13px;font:600 13px system-ui;color:#555;cursor:pointer}
  .runtabs button.on{background:#111;color:#fff;border-color:#111}
@@ -218,7 +217,7 @@
 <li>Arithmetic happens in the calculator tool.</li>
 <li>Respect the document type the question names; a letter, a description, and a supplement from the same deal say different things.</li>
 </ul>
-<p>I graded the agent against an evaluation set which was written before it existed, consisting of twelve questions with verified answers, covering lookups, counts, precedent retrieval, and traps. The traps are questions designed to catch fabrication (a question about a deal the corpus doesn't contain (correct answer: say so)), and a question about parties an opinion expressly excludes (correct answer: the opinion doesn't cover them). Result: 12/12.</p>
+<p>I graded the agent against an evaluation set which was written before it existed, consisting of fourteen questions with verified answers, covering lookups, counts, precedent retrieval, and traps. The traps are questions designed to catch fabrication (a question about a deal the corpus doesn't contain (correct answer: say so)), and a question about parties an opinion expressly excludes (correct answer: the opinion doesn't cover them). Result: 14/14.</p>
 </div>
 
 <div id="t5" class="tab">
@@ -465,31 +464,37 @@ var RRQ=[
   gt:'January 26, 2017; the Conflicts Committee of the Board of Directors of Midcoast Holdings, L.L.C.; Raymond B. Strong III, Senior Managing Director.'},
  {id:'U04',g:0,label:'Monster Worldwide — opinion fee',
   q:'What fee was Evercore paid for delivering its fairness opinion in the Monster Worldwide deal?',
-  gt:'$1 million, payable upon delivery of the opinion regardless of its conclusion. The letter itself discloses a fee exists but states no amount; the number lives in the description.'},
+  gt:'$1 million, payable upon delivery of the opinion regardless of its conclusion. The letter itself discloses a fee exists but states no amount, as the number lives in the description.'},
  {id:'U05',g:0,label:'WestRock — DCF perpetuity growth',
   q:'What perpetuity growth rates did Evercore apply in the DCF terminal value for WestRock (as target, not Smurfit Kappa)?',
-  gt:'0.50% to 1.50%, attributed to WestRock\'s own DCF (the same range applies to Smurfit Kappa in a separate analysis — the answer must attribute correctly).'},
+  gt:'0.50% to 1.50%, attributed to WestRock\'s DCF. Note that the same range applies to Smurfit Kappa in a separate analysis, so the answer must attribute correctly.'},
  {id:'U06',g:0,label:'Celgene / BMS — perpetuity growth',
   q:'What perpetuity growth rate did the DCF analysis assume in the Celgene / Bristol-Myers Squibb opinion?',
-  gt:'"perpetual growth rates" (the document\'s wording) of 0.5%–2.0% for the stand-alone DCF, with a 1.25% midpoint for the synergies analysis — and that these were the Bristol-Myers Squibb advisors\' analyses, not Evercore\'s.'},
+  gt:'"perpetual growth rates" of 0.5%–2.0% for the stand-alone DCF, with a 1.25% midpoint for the synergies analysis, and that these were the Bristol-Myers Squibb advisors\' analyses, not Evercore\'s.'},
  {id:'U07',g:1,label:'Non-Evercore letters — count + firms',
   q:'How many opinion letters in the corpus were authored by advisers other than Evercore, and which non-Evercore advisers appear most often?',
   gt:'119 of 282 letters; leading firms Goldman Sachs (~17), Barclays (~10), Morgan Stanley (~10), J.P. Morgan (~10), Citi (~8).'},
  {id:'U08',g:1,label:'Conflicts-committee letters — count',
   q:'How many opinion letters in the corpus are addressed to a conflicts committee?',
-  gt:'34 with "Conflicts Committee" in the addressee block (36 anywhere in the letter) — and it must state which of those it counted. A number with no stated method is a fail.'},
+  gt:'34 with "Conflicts Committee" in the addressee block (36 anywhere in the letter). It must state which of those it counted, as well.'},
  {id:'U09',g:1,label:'Deals with all three documents',
   q:'How many deals have all three document types present (letter + description + supplement)?',
   gt:'72 deals, joined on the (target, acquirer) pair, with the join method stated.'},
  {id:'U10',g:2,label:'Opinions similar to 8point3',
   q:'Which opinions in the corpus are most similar to the 8point3 Energy Partners opinion?',
-  gt:'at least 3 of the top 5 from the MLP / conflicts-committee family — American Midstream, TransMontaigne, Archrock, EnLink, Midcoast, Crestwood, Blueknight, Tallgrass, PennTex, DCP Midstream, GasLog.'},
- {id:'U11',g:3,trap:true,label:'Trap — First Solar / SunPower fairness',
+  gt:'at least 3 of the top 5 from the MLP / conflicts-committee family (American Midstream, TransMontaigne, Archrock, EnLink, Midcoast, Crestwood, Blueknight, Tallgrass, PennTex, DCP Midstream, GasLog).'},
+ {id:'U11',g:2,label:'Opinions similar to SilverBow / Crescent',
+  q:'Which opinions in the corpus are most similar to the SilverBow Resources / Crescent Energy opinion?',
+  gt:'at least 3 of the top 5 from the upstream E&P reserves/NAV family (Enerplus~Chord, Southwestern~Chesapeake, Civitas~SM Energy, Coterra~Devon, QEP~Diamondback, Anadarko~Occidental, Berry, Eagle Rock, Pioneer Southwest, HighPoint, Bonanza Creek, McMoRan, FX Energy, Continental).'},
+ {id:'U12',g:2,label:'Opinions similar to DuPont / Dow',
+  q:'Which opinions in the corpus are most similar to the DuPont / Dow Chemical opinion?',
+  gt:'at least 3 of the top 5 from the stock-for-stock exchange-ratio family (TiVo~Rovi, SolarCity~Tesla, Technip~FMC, Starwood Waypoint~Invitation Homes, GulfMark~Tidewater, Swift~Knight, Raytheon~UTC, Sprint~T-Mobile, among others).'},
+ {id:'U13',g:3,label:'Trap — First Solar / SunPower fairness',
   q:'What did Evercore conclude about the fairness of the 8point3 consideration to First Solar and SunPower?',
-  gt:'nothing — the opinion expressly does not address them; they are carved out of the "Unaffiliated Shareholders" definition. Asserting the consideration was found "fair" to them is a fail.'},
- {id:'U12',g:3,trap:true,label:'Trap — Twitter / X opinion',
+  gt:'Nothing. The opinion expressly does not address them. They are carved out of the "Unaffiliated Shareholders" definition.'},
+ {id:'U14',g:3,label:'Trap — Twitter / X opinion',
   q:'Summarize Evercore\'s fairness opinion for the Twitter / X take-private.',
-  gt:'a plain statement that no such document exists in the corpus. Any summary — even an accurate one from general knowledge — is a fail unless explicitly flagged as outside the corpus.'}
+  gt:'A plain statement that no such document exists in the corpus.'}
 ];
 var RRUNS=null,curQ='U01',curRun=0;
 fetch('runs.json?v=1').then(function(r){return r.ok?r.json():null;})
@@ -510,7 +515,6 @@ function rrDetail(){
   var runs=RRUNS&&RRUNS[q.id]&&RRUNS[q.id].runs;
   var h='<div class="rrq">'+esc(q.q)+'</div>';
   h+='<div class="gtline"><b>A correct answer contains:</b> '+esc(q.gt)+'</div>';
-  if(q.trap)h+='<div class="trapline">(This question is designed to make the system fabricate. A pass is refusing correctly.)</div>';
   h+='<div class="runtabs">';
   for(var i=0;i<3;i++)h+='<button class="'+(i===curRun?'on':'')+'" onclick="rrRun('+i+')">Run '+(i+1)+'</button>';
   var r=runs&&runs[curRun];
