@@ -285,7 +285,6 @@ function embInit(){
            legend:[['#534AB7','letters'],['#0F6E56','descriptions'],['#993C1D','supplements'],['ring','8point3 + neighbors']]},
           {name:'family',color:function(i){return famColor(doc.fam[i]);},legend:famLegend}
         ],
-        cap:'583 documents · drag to rotate · scroll to zoom',
         tip:function(i){return '<b>'+esc(d.deals[doc.deal[i]])+'</b><br><small>'
           +doc.kinds[doc.kind[i]]+(doc.year[i]?' · '+doc.year[i]:'')+(doc.ev[i]?' · Evercore':'')+'</small>'
           +famLine(doc.fam[i]);}
@@ -323,7 +322,7 @@ function view3d(host,o){
     b.onclick=function(){mode=mi;setMode();};mc.appendChild(b);
   });
   if(o.modes.length>1)host.appendChild(mc);
-  var n=o.n,P=o.xyz,yaw=0.65,pitch=0.32,uz=1,auto=true,hov=-1,pin=-1;
+  var n=o.n,P=o.xyz,yaw=0.65,pitch=0.32,uz=1,auto=false,hov=-1,pin=-1;
   var SX=new Float32Array(n),SY=new Float32Array(n),SS=new Float32Array(n),Z=new Float32Array(n);
   var ord=new Uint32Array(n),F=560;
   var bts=document.createElement('div');bts.className='v3dbtns';
@@ -336,7 +335,7 @@ function view3d(host,o){
     var b=document.createElement('button');b.textContent=B[0];b.title=B[1];
     b.onclick=B[2];bts.appendChild(b);});
   host.appendChild(bts);
-  var cap=document.createElement('div');cap.className='v3dcap';cap.textContent=o.cap;host.appendChild(cap);
+  if(o.cap){var cap=document.createElement('div');cap.className='v3dcap';cap.textContent=o.cap;host.appendChild(cap);}
   function setMode(){
     var bs=mc.querySelectorAll('button');
     for(var i=0;i<bs.length;i++)bs[i].classList.toggle('on',i===mode);
