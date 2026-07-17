@@ -49,16 +49,28 @@
  .v3dbtns button{width:24px;height:24px;border:1px solid #e2e2e2;border-radius:4px;background:rgba(251,251,251,.9);color:#555;font:600 13px/1 system-ui;cursor:pointer;padding:0}
  .v3dbtns button:hover{border-color:#999;color:#111}
  .v3d:fullscreen{border:0;border-radius:0;background:#fff;width:100%!important;height:100%!important}
+ .rr{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start;margin-top:16px}
+ @media(max-width:760px){.rr{grid-template-columns:1fr}}
+ .rrgh{font:600 11px ui-monospace,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;color:#999;margin:14px 0 6px}
+ .rrlist .rrgh:first-child{margin-top:0}
+ .qcard{display:block;width:100%;box-sizing:border-box;text-align:left;border:1px solid #e2e2e2;border-radius:4px;background:#fff;padding:7px 10px;margin:4px 0;cursor:pointer;font:13px system-ui;color:#333}
+ .qcard:hover{border-color:#999}
+ .qcard.on{border-color:#111;background:#f6f6f4}
+ .qcard .qid{font:600 11px ui-monospace,Consolas,monospace;color:#999;margin-right:7px}
+ .rrq{font-size:15px;font-weight:650;margin:0 0 10px}
+ .gtline{font-size:13.5px;color:#5F6368;background:#f6f6f6;border-left:3px solid #ddd;padding:8px 12px;margin:10px 0}
+ .gtline b{color:#444}
+ .trapline{font-size:13px;color:#777;font-style:italic;margin:8px 0}
+ .runtabs{display:flex;gap:6px;margin:14px 0 10px;align-items:center}
+ .runtabs button{border:1px solid #e2e2e2;background:#fff;border-radius:4px;padding:5px 13px;font:600 13px system-ui;color:#555;cursor:pointer}
+ .runtabs button.on{background:#111;color:#fff;border-color:#111}
+ .badge{font:600 11px ui-monospace,Consolas,monospace;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:3px;vertical-align:middle}
+ .badge.pass{background:#E1F5EE;color:#0F6E56}
+ .badge.fail{background:#FAECE7;color:#993C1D}
+ .badge.review{background:#F1EFE8;color:#5F5E5A}
  .dg g rect{transition:stroke-width .12s}
  .dg g.rt{cursor:pointer}
  .dg g.rt:hover rect{stroke-width:2.4}
- .qrow{margin:10px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
- #qsel{max-width:100%;padding:7px 8px;border:1px solid #E5E7EB;border-radius:4px;font:13px system-ui;color:#111;background:#fff}
- #qbox{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #E5E7EB;border-radius:4px;font:14px system-ui;color:#111;resize:vertical}
- #qbox:focus{outline:none;border-color:#111}
- #runbtn{border:1px solid #111;background:#111;color:#fff;padding:8px 18px;border-radius:4px;font:600 13.5px system-ui;cursor:pointer}
- #runbtn:disabled{opacity:.45;cursor:default}
- #qstat{font:12px ui-monospace,Consolas,monospace;color:#777}
  .ansbox{margin:16px 0 8px;padding:14px 16px;border:1px solid #ddd;border-radius:4px;white-space:pre-wrap}
  .costline{font:12px ui-monospace,Consolas,monospace;color:#777;margin:6px 0 14px}
  .stepd{border:1px solid #e2e2e2;border-radius:4px;margin:6px 0;background:#fbfbfb}
@@ -149,7 +161,7 @@
 <g><rect x="40" y="378" width="600" height="44" rx="4" fill="#F1EFE8" stroke="#5F5E5A"/>
 <text class="tt" x="340" y="400" text-anchor="middle" fill="#2C2C2A">Corpus: 583 documents, 223 deals</text></g>
 </svg>
-<p>The following tabs describe the <a class="jump" href="#" onclick="tabTo('t2');return false">embeddings</a>, the <a class="jump" href="#" onclick="tabTo('t3');return false">scan</a>, and the <a class="jump" href="#" onclick="tabTo('t4');return false">agent itself</a>, followed by a <a class="jump" href="#" onclick="tabTo('t5');return false">live demo</a>.</p>
+<p>The following tabs describe the <a class="jump" href="#" onclick="tabTo('t2');return false">embeddings</a>, the <a class="jump" href="#" onclick="tabTo('t3');return false">scan</a>, and the <a class="jump" href="#" onclick="tabTo('t4');return false">agent itself</a>, followed by <a class="jump" href="#" onclick="tabTo('t5');return false">recorded runs</a>.</p>
 </div>
 
 <div id="t2" class="tab">
@@ -210,30 +222,12 @@
 </div>
 
 <div id="t5" class="tab">
-<h2>Live demo</h2>
-<p>This runs the real agent: claude-opus-4-8 orchestrating the six tools over the full index, live. Typical question 15&ndash;60&nbsp;s; exhaustive-scan questions can take ~3&nbsp;min and cost real money — go easy.</p>
-<div class="qrow">
-<select id="qsel">
-<option value="">— pick an eval-set question, or type your own —</option>
-<option>In Evercore's fairness opinion for 8point3 Energy Partners, what per-share consideration did the opinion address, and which holders were excluded from the fairness determination?</option>
-<option>For the Midcoast Energy Partners opinion letter: what is the letter's date, who is it addressed to, and who signed it?</option>
-<option>How many opinion letters in the corpus were authored by advisers other than Evercore, and which non-Evercore advisers appear most often?</option>
-<option>How many opinion letters in the corpus are addressed to a conflicts committee?</option>
-<option>How many deals have all three document types present (letter + description + supplement)?</option>
-<option>Which opinions in the corpus are most similar to the 8point3 Energy Partners opinion?</option>
-<option>What did Evercore conclude about the fairness of the 8point3 consideration to First Solar and SunPower?</option>
-<option>Summarize Evercore's fairness opinion for the Twitter / X take-private.</option>
-<option>What perpetuity growth rates did Evercore apply in the DCF terminal value for WestRock (as target, not Smurfit Kappa)?</option>
-<option>Which Evercore opinion letters are outliers — worded least like the rest? Explain why for the top three.</option>
-<option>Across healthcare and biopharma deals from the past two years, what discount rates did the DCF analyses in the opinion descriptions use? Give the range and the average.</option>
-</select>
+<h2>Recorded runs</h2>
+<p>This page hosts recorded runs of the Databricks production system. Each question was run three times.</p>
+<div class="rr">
+<div class="rrlist" id="rrlist"></div>
+<div class="rrdetail" id="rrdetail"></div>
 </div>
-<textarea id="qbox" rows="3" placeholder="Ask the corpus anything…"></textarea>
-<div class="qrow">
-<button id="runbtn" onclick="runAgent()">Run agent</button>
-<span id="qstat"></span>
-</div>
-<div id="qout"></div>
 </div>
 
 <div class="fn">ADA · July 2026.</div>
@@ -296,7 +290,6 @@ function embInit(){
            legend:[['#0F6E56','text passages'],['#993C1D','tables']]},
           {name:'family',color:function(i){return famColor(ch.fam[i]);},legend:famLegend}
         ],
-        cap:'9,588 passages · drag to rotate · scroll to zoom · click a point to pin it',
         tip:function(i){return '<b>'+esc(d.deals[ch.deal[i]])+'</b><br><small>'
           +d.doc.kinds[ch.kind[i]]+' · p.'+ch.page[i]+(ch.table[i]?' · table':'')+'</small>'
           +famLine(ch.fam[i])+'<br>'+esc(ch.snip[i])+'&hellip;';}
@@ -456,42 +449,88 @@ function view3d(host,o){
   setMode();size();loop();
 }
 
-/* ---- live demo ---- */
-var API='https://ndelisle--opinion-agent-demo-api.modal.run', APIPASS='ada_332';
-document.getElementById('qsel').addEventListener('change',function(){
-  if(this.value)document.getElementById('qbox').value=this.value;
-});
 function esc(s){var d=document.createElement('span');d.textContent=s==null?'':String(s);return d.innerHTML;}
-async function runAgent(){
-  var q=document.getElementById('qbox').value.trim();
-  var btn=document.getElementById('runbtn'),st=document.getElementById('qstat'),out=document.getElementById('qout');
-  if(!q){st.textContent='type or pick a question first';return;}
-  btn.disabled=true;out.innerHTML='';st.textContent='submitting…';
-  var t0=Date.now(),tick=setInterval(function(){st.textContent='agent running… '+Math.round((Date.now()-t0)/1000)+'s';},1000);
-  try{
-    var r=await fetch(API+'/ask',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({question:q,password:APIPASS})});
-    var j=await r.json();
-    if(j.error)throw new Error(j.error);
-    var cid=j.call_id,res=null;
-    for(var i=0;i<180;i++){
-      await new Promise(function(z){setTimeout(z,2500);});
-      var p=await(await fetch(API+'/result/'+cid+'?password='+APIPASS)).json();
-      if(p.status==='done'){res=p.result;break;}
-      if(p.status==='error')throw new Error(p.error);
-    }
-    if(!res)throw new Error('timed out waiting for the agent');
-    var h='<div class="ansbox">'+esc(res.answer)+'</div>';
-    h+='<div class="costline">'+res.trace.length+' tool call'+(res.trace.length===1?'':'s')
-      +' · $'+(res.cost_usd!=null?res.cost_usd.toFixed(4):'?')
-      +' · '+Math.round((Date.now()-t0)/1000)+'s · opus-4-8 + haiku-4.5</div>';
-    res.trace.forEach(function(s){
-      h+='<details class="stepd"><summary>step '+s.step+' · '+esc(s.tool)+'('+esc(JSON.stringify(s.args)).slice(0,160)+')</summary>'
-        +'<pre>'+esc(s.result_preview)+'</pre></details>';
-    });
-    out.innerHTML=h;st.textContent='';
-  }catch(e){
-    out.innerHTML='<div class="errbox">'+esc(e.message)+'</div>';st.textContent='';
-  }finally{clearInterval(tick);btn.disabled=false;}
+
+/* ---- recorded runs ---- */
+var RRGROUPS=['Lookups','Counts and aggregates','Similarity','Traps'];
+var RRQ=[
+ {id:'U01',g:0,label:'8point3 — consideration + exclusions',
+  q:'In Evercore\'s fairness opinion for 8point3 Energy Partners, what per-share consideration did the opinion address, and which holders were excluded from the fairness determination?',
+  gt:'$12.35 in cash per Class A share; the opinion runs to the "Unaffiliated Shareholders," expressly excluding the General Partner, First Solar, SunPower, and their affiliates.'},
+ {id:'U02',g:0,label:'8point3 — analyst EBITDA estimates',
+  q:'Per the 8point3 proxy supplement, what range of research-analyst 2018 EBITDA estimates did Evercore observe, and did Evercore use analyst estimates to derive its valuation ranges?',
+  gt:'$103.7M–$129.2M, and that Evercore did NOT use them to derive its valuation ranges. Saying they were "used as a cross-check" is wrong.'},
+ {id:'U03',g:0,label:'Midcoast letter — date, addressee, signer',
+  q:'For the Midcoast Energy Partners opinion letter: what is the letter\'s date, who is it addressed to, and who signed it?',
+  gt:'January 26, 2017; the Conflicts Committee of the Board of Directors of Midcoast Holdings, L.L.C.; Raymond B. Strong III, Senior Managing Director.'},
+ {id:'U04',g:0,label:'Monster Worldwide — opinion fee',
+  q:'What fee was Evercore paid for delivering its fairness opinion in the Monster Worldwide deal?',
+  gt:'$1 million, payable upon delivery of the opinion regardless of its conclusion. The letter itself discloses a fee exists but states no amount; the number lives in the description.'},
+ {id:'U05',g:0,label:'WestRock — DCF perpetuity growth',
+  q:'What perpetuity growth rates did Evercore apply in the DCF terminal value for WestRock (as target, not Smurfit Kappa)?',
+  gt:'0.50% to 1.50%, attributed to WestRock\'s own DCF (the same range applies to Smurfit Kappa in a separate analysis — the answer must attribute correctly).'},
+ {id:'U06',g:0,label:'Celgene / BMS — perpetuity growth',
+  q:'What perpetuity growth rate did the DCF analysis assume in the Celgene / Bristol-Myers Squibb opinion?',
+  gt:'"perpetual growth rates" (the document\'s wording) of 0.5%–2.0% for the stand-alone DCF, with a 1.25% midpoint for the synergies analysis — and that these were the Bristol-Myers Squibb advisors\' analyses, not Evercore\'s.'},
+ {id:'U07',g:1,label:'Non-Evercore letters — count + firms',
+  q:'How many opinion letters in the corpus were authored by advisers other than Evercore, and which non-Evercore advisers appear most often?',
+  gt:'119 of 282 letters; leading firms Goldman Sachs (~17), Barclays (~10), Morgan Stanley (~10), J.P. Morgan (~10), Citi (~8).'},
+ {id:'U08',g:1,label:'Conflicts-committee letters — count',
+  q:'How many opinion letters in the corpus are addressed to a conflicts committee?',
+  gt:'34 with "Conflicts Committee" in the addressee block (36 anywhere in the letter) — and it must state which of those it counted. A number with no stated method is a fail.'},
+ {id:'U09',g:1,label:'Deals with all three documents',
+  q:'How many deals have all three document types present (letter + description + supplement)?',
+  gt:'72 deals, joined on the (target, acquirer) pair, with the join method stated.'},
+ {id:'U10',g:2,label:'Opinions similar to 8point3',
+  q:'Which opinions in the corpus are most similar to the 8point3 Energy Partners opinion?',
+  gt:'at least 3 of the top 5 from the MLP / conflicts-committee family — American Midstream, TransMontaigne, Archrock, EnLink, Midcoast, Crestwood, Blueknight, Tallgrass, PennTex, DCP Midstream, GasLog.'},
+ {id:'U11',g:3,trap:true,label:'Trap — First Solar / SunPower fairness',
+  q:'What did Evercore conclude about the fairness of the 8point3 consideration to First Solar and SunPower?',
+  gt:'nothing — the opinion expressly does not address them; they are carved out of the "Unaffiliated Shareholders" definition. Asserting the consideration was found "fair" to them is a fail.'},
+ {id:'U12',g:3,trap:true,label:'Trap — Twitter / X opinion',
+  q:'Summarize Evercore\'s fairness opinion for the Twitter / X take-private.',
+  gt:'a plain statement that no such document exists in the corpus. Any summary — even an accurate one from general knowledge — is a fail unless explicitly flagged as outside the corpus.'}
+];
+var RRUNS=null,curQ='U01',curRun=0;
+fetch('runs.json?v=1').then(function(r){return r.ok?r.json():null;})
+  .then(function(j){RRUNS=j;rrDetail();rrList();}).catch(function(){});
+function rrList(){
+  var el=document.getElementById('rrlist'),h='',g=-1;
+  RRQ.forEach(function(q){
+    if(q.g!==g){g=q.g;h+='<div class="rrgh">'+RRGROUPS[g]+'</div>';}
+    h+='<button class="qcard'+(q.id===curQ?' on':'')+'" onclick="rrSelect(\''+q.id+'\')">'
+      +'<span class="qid">'+q.id+'</span>'+esc(q.label)+'</button>';
+  });
+  el.innerHTML=h;
 }
+function rrSelect(id){curQ=id;curRun=0;rrList();rrDetail();}
+function rrRun(i){curRun=i;rrDetail();}
+function rrDetail(){
+  var q=null;RRQ.forEach(function(x){if(x.id===curQ)q=x;});
+  var runs=RRUNS&&RRUNS[q.id]&&RRUNS[q.id].runs;
+  var h='<div class="rrq">'+esc(q.q)+'</div>';
+  h+='<div class="gtline"><b>A correct answer contains:</b> '+esc(q.gt)+'</div>';
+  if(q.trap)h+='<div class="trapline">(This question is designed to make the system fabricate. A pass is refusing correctly.)</div>';
+  h+='<div class="runtabs">';
+  for(var i=0;i<3;i++)h+='<button class="'+(i===curRun?'on':'')+'" onclick="rrRun('+i+')">Run '+(i+1)+'</button>';
+  var r=runs&&runs[curRun];
+  if(r&&r.verdict)h+='<span class="badge '+esc(r.verdict)+'">'+esc(r.verdict)+'</span>';
+  h+='</div>';
+  h+='<div class="ansbox">'+(r?esc(r.answer):'[Placeholder]')+'</div>';
+  if(r&&r.work){
+    if(r.cost_usd!=null||r.secs!=null)
+      h+='<div class="costline">'+r.work.length+' tool call'+(r.work.length===1?'':'s')
+        +(r.cost_usd!=null?' · $'+Number(r.cost_usd).toFixed(4):'')
+        +(r.secs!=null?' · '+Math.round(r.secs)+'s':'')+'</div>';
+    h+='<details class="stepd"><summary>show work — '+r.work.length+' tool call'+(r.work.length===1?'':'s')+'</summary>';
+    r.work.forEach(function(s){
+      h+='<pre>'+esc((s.step!=null?'step '+s.step+' · ':'')+s.tool+'('+JSON.stringify(s.args)+')\n'+(s.result_preview||''))+'</pre>';
+    });
+    h+='</details>';
+  }else{
+    h+='<details class="stepd"><summary>show work — tool calls</summary><pre>[Placeholder — tool calls will appear when runs.json lands]</pre></details>';
+  }
+  document.getElementById('rrdetail').innerHTML=h;
+}
+rrList();rrDetail();
 </script></body></html>
