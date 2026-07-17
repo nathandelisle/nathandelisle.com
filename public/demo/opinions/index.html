@@ -31,9 +31,9 @@
  .jump{color:#1a6faf;text-decoration:none}
  .jump:hover{text-decoration:underline}
  .dgcap{font-size:12.5px;color:#777}
- .dg g rect{transition:fill .12s,stroke .12s}
+ .dg g rect{transition:stroke-width .12s}
  .dg g.rt{cursor:pointer}
- .dg g.rt:hover rect{fill:#eef4fa;stroke:#1a6faf}
+ .dg g.rt:hover rect{stroke-width:2.4}
  .qrow{margin:10px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
  #qsel{max-width:100%;padding:7px 8px;border:1px solid #E5E7EB;border-radius:4px;font:13px system-ui;color:#111;background:#fff}
  #qbox{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #E5E7EB;border-radius:4px;font:14px system-ui;color:#111;resize:vertical}
@@ -80,7 +80,7 @@
 <p>The existing unstructured assistant is a model with the documents stuffed into its context window. This fails for several reasons:</p>
 <ul>
 <li>It can't see the full corpus: a context window fits only a few dozen opinions out of 583.</li>
-<li>It has no tools. Computations occur inside the model's latent space, which works for simple arithmetic but fails for anything harder.</li>
+<li>It has no tools: computations occur inside the model's latent space, which works for simple arithmetic but fails for anything harder.</li>
 <li>It can't guarantee completeness: "Average over [X]" is computed over whatever was retrieved, which (for the above reasons) is non-deterministic.</li>
 </ul>
 <p>The idea behind this unstructured assistant, Atlas, is to replace the single context window with an agent equipped with three simple tools: document-level embeddings for precedents/outliers, chunk-level embeddings for assumptions/wording, and a scan for aggregates, plus a few trivial tools: a metadata counter, a page reader, a calculator. This approach has the advantage of simplicity: each tool is a small deterministic function, and the model underlying the agent is used in its ideal capacity, for judgment.</p>
@@ -90,44 +90,57 @@
 <p>The most important decision is the first one: which tool to use. A lookup goes to passage search, a precedent question goes to document similarity, a count or average goes to scan. If the agent routes wrong, the answer will be wrong, so the agent's system prompt contains explicit description of each tool and its limitations.</p>
 <p>Each opinion is embedded at two levels. Document-level vectors represent each opinion as a whole, and are used for precedent and outlier questions. Chunk-level vectors represent individual passages, and are used to find where something is said, or to locate specific concepts. Embeddings can't answer aggregate questions, because retrieval returns the top matches rather than all of them, so the "scan" tool uses a cheap language model to read every document that passes a metadata filter. The remaining tools (metadata counter, page reader, calculator) exist so the model doesn't count or do arithmetic itself.</p>
 <p>I also created an evaluation set consisting of questions with verified answers, including traps (like questions about deals that aren't in the corpus).</p>
-<svg class="dg" viewBox="0 0 760 392" style="max-width:760px;width:100%;font:11px system-ui" role="img">
-<defs><marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L8,4L0,8z" fill="#9AA0A6"/></marker></defs>
-<g><rect x="290" y="6" width="180" height="38" rx="19" fill="#f6f6f6" stroke="#ccc"/>
-<text x="380" y="29" text-anchor="middle" style="font:600 13px system-ui" fill="#111">Question</text>
+<svg class="dg" width="100%" viewBox="0 0 680 460" role="img" aria-label="Atlas architecture: a question goes to the agent, which loops with tools grounded in the corpus, and returns a cited answer." style="max-width:680px;display:block;margin:0 auto;font-family:inherit">
+<defs>
+<marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#5F5E5A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+<style>
+.dg .ln { stroke:#5F5E5A; stroke-width:1.2; fill:none; }
+.dg .tt { font-size:14px; font-weight:600; }
+.dg .ts { font-size:12px; }
+.dg text { dominant-baseline:central; }
+</style>
+</defs>
+<g><rect x="40" y="36" width="150" height="44" rx="4" fill="#F1EFE8" stroke="#5F5E5A"/>
+<text class="tt" x="115" y="58" text-anchor="middle" fill="#2C2C2A">Question</text>
 <title>Asked in plain English: what did comparable deals assume? which opinions are unusual? average X across all deals that&hellip;</title></g>
-<line x1="380" y1="44" x2="380" y2="66" stroke="#9AA0A6" marker-end="url(#arr)"/>
-<g class="rt" onclick="tabTo('t4')"><rect x="220" y="70" width="320" height="52" rx="6" fill="#fff" stroke="#111"/>
-<text x="380" y="91" text-anchor="middle" style="font:600 13px system-ui" fill="#111">Agent</text>
-<text x="380" y="108" text-anchor="middle" fill="#777">picks the cheapest route that guarantees the answer</text>
-<title>A strong model (claude-opus-4-8) that routes between tools, never invents a corpus fact, and cites every claim. Click for the full tool set and rules.</title></g>
-<line x1="295" y1="122" x2="140" y2="172" stroke="#9AA0A6" marker-end="url(#arr)"/>
-<line x1="380" y1="122" x2="380" y2="172" stroke="#9AA0A6" marker-end="url(#arr)"/>
-<line x1="465" y1="122" x2="620" y2="172" stroke="#9AA0A6" marker-end="url(#arr)"/>
-<g class="rt" onclick="tabTo('t2')"><rect x="15" y="176" width="226" height="78" rx="6" fill="#fff" stroke="#ccc"/>
-<text x="128" y="199" text-anchor="middle" style="font:600 13px system-ui" fill="#111">Document embeddings</text>
-<text x="128" y="217" text-anchor="middle" fill="#777">"which opinions are like this one?"</text>
-<text x="128" y="234" text-anchor="middle" fill="#777">583 documents &middot; precedents &amp; outliers</text>
-<title>One vector per document. The route for precedent sets and outliers — questions about whole opinions. Guarantee: a ranking over all 583 documents at once.</title></g>
-<g class="rt" onclick="tabTo('t2')"><rect x="267" y="176" width="226" height="78" rx="6" fill="#fff" stroke="#ccc"/>
-<text x="380" y="199" text-anchor="middle" style="font:600 13px system-ui" fill="#111">Passage search</text>
-<text x="380" y="217" text-anchor="middle" fill="#777">"where does it say X?"</text>
-<text x="380" y="234" text-anchor="middle" fill="#777">9,588 chunks &middot; meaning + keyword</text>
-<title>Top-k retrieval over ~600-token passages, every hit citable to a page. The route for wording, assumptions, findings. Never used for counting — it can't promise completeness.</title></g>
-<g class="rt" onclick="tabTo('t3')"><rect x="519" y="176" width="226" height="78" rx="6" fill="#fff" stroke="#ccc"/>
-<text x="632" y="199" text-anchor="middle" style="font:600 13px system-ui" fill="#111">Exhaustive scan</text>
-<text x="632" y="217" text-anchor="middle" fill="#777">"compute across every matching doc"</text>
-<text x="632" y="234" text-anchor="middle" fill="#777">deterministic filter &middot; every doc read</text>
-<title>A deterministic filter picks the universe, then every matching document is read — free regex, or a cheap model extracting values. Guarantee: completeness; nothing matching is skipped.</title></g>
-<line x1="128" y1="254" x2="305" y2="306" stroke="#9AA0A6" marker-end="url(#arr)"/>
-<line x1="380" y1="254" x2="380" y2="306" stroke="#9AA0A6" marker-end="url(#arr)"/>
-<line x1="632" y1="254" x2="455" y2="306" stroke="#9AA0A6" marker-end="url(#arr)"/>
-<g><rect x="230" y="310" width="300" height="52" rx="6" fill="#f6f6f6" stroke="#ccc"/>
-<text x="380" y="331" text-anchor="middle" style="font:600 13px system-ui" fill="#111">Cited answer</text>
-<text x="380" y="349" text-anchor="middle" style="font:10.5px ui-monospace,Consolas,monospace" fill="#777">[Target ~ Acquirer, doc-kind, p.N]</text>
-<title>Answer first, one line of method, caveats if any — and every factual claim carries a citation that can be checked against the filing in seconds.</title></g>
+<g class="rt" onclick="tabTo('t4')"><rect x="250" y="36" width="180" height="44" rx="4" fill="#EEEDFE" stroke="#534AB7" stroke-width="1.5"/>
+<text class="tt" x="340" y="58" text-anchor="middle" fill="#26215C">Agent</text>
+<title>Reads the question, picks the tool, inspects the result, repeats until it has enough evidence — then writes the answer with a citation on each claim. Click for the full tool set and rules.</title></g>
+<g><rect x="490" y="36" width="150" height="44" rx="4" fill="#F1EFE8" stroke="#5F5E5A"/>
+<text class="tt" x="565" y="58" text-anchor="middle" fill="#2C2C2A">Cited answer</text>
+<title>Answer first, one line of method, caveats if any — every factual claim carries [Target ~ Acquirer, doc-kind, p.N].</title></g>
+<line class="ln" x1="190" y1="58" x2="244" y2="58" marker-end="url(#arr)"/>
+<line class="ln" x1="430" y1="58" x2="484" y2="58" marker-end="url(#arr)"/>
+<path class="ln" d="M315 80 C 305 115, 305 145, 315 174" marker-end="url(#arr)"/>
+<path class="ln" d="M365 174 C 375 145, 375 115, 365 82" marker-end="url(#arr)"/>
+<text class="ts" x="297" y="130" text-anchor="end" fill="#666">calls</text>
+<text class="ts" x="383" y="130" text-anchor="start" fill="#666">results</text>
+<rect x="40" y="184" width="600" height="150" rx="6" fill="none" stroke="#bbb" stroke-width="1" stroke-dasharray="5 4"/>
+<text class="ts" x="56" y="202" fill="#666">Tools</text>
+<g class="rt" onclick="tabTo('t2')"><rect x="60" y="214" width="185" height="52" rx="4" fill="#E1F5EE" stroke="#0F6E56"/>
+<text class="tt" x="152" y="232" text-anchor="middle" fill="#04342C">Doc-level embeddings</text>
+<text class="ts" x="152" y="250" text-anchor="middle" fill="#0F6E56">precedents / outliers</text>
+<title>One vector per document — the route for precedent sets and outliers. Guarantee: a ranking over all 583 documents at once.</title></g>
+<g class="rt" onclick="tabTo('t2')"><rect x="257" y="214" width="195" height="52" rx="4" fill="#E1F5EE" stroke="#0F6E56"/>
+<text class="tt" x="354" y="232" text-anchor="middle" fill="#04342C">Chunk-level embeddings</text>
+<text class="ts" x="354" y="250" text-anchor="middle" fill="#0F6E56">assumptions / wording</text>
+<title>Top-k retrieval over ~600-token passages, every hit citable to a page. Never used for counting — it can't promise completeness.</title></g>
+<g class="rt" onclick="tabTo('t3')"><rect x="464" y="214" width="155" height="52" rx="4" fill="#FAECE7" stroke="#993C1D"/>
+<text class="tt" x="541" y="232" text-anchor="middle" fill="#4A1B0C">Scan</text>
+<text class="ts" x="541" y="250" text-anchor="middle" fill="#993C1D">aggregates</text>
+<title>A deterministic filter picks the universe, then a cheap model reads every matching document. Guarantee: completeness — nothing matching is skipped.</title></g>
+<g><rect x="60" y="278" width="559" height="40" rx="4" fill="#F1EFE8" stroke="#5F5E5A"/>
+<text class="ts" x="339" y="298" text-anchor="middle" fill="#2C2C2A">Utilities (metadata counter &middot; page reader &middot; calculator)</text>
+<title>Deterministic helpers: exact counts over the manifest, verbatim pages, guarded arithmetic — so the model never counts or computes itself.</title></g>
+<line class="ln" x1="340" y1="334" x2="340" y2="366" marker-end="url(#arr)"/>
+<g><rect x="40" y="370" width="600" height="44" rx="4" fill="#F1EFE8" stroke="#5F5E5A"/>
+<text class="tt" x="340" y="392" text-anchor="middle" fill="#2C2C2A">Corpus: 583 documents, 223 deals</text>
+<title>282 opinion letters &middot; 194 opinion descriptions &middot; 107 proxy supplements &middot; 2007&ndash;2026</title></g>
 </svg>
 <p class="dgcap">Hover a box for what it guarantees; click a route to jump to its tab.</p>
-<p>The following tabs describe the <a class="jump" href="#" onclick="tabTo('t2');return false">embeddings</a>, the <a class="jump" href="#" onclick="tabTo('t3');return false">scan</a>, and the <a class="jump" href="#" onclick="tabTo('t4');return false">agent</a>, followed by a <a class="jump" href="#" onclick="tabTo('t5');return false">live demo</a>.</p>
+<p>The following tabs describe the <a class="jump" href="#" onclick="tabTo('t2');return false">embeddings</a>, the <a class="jump" href="#" onclick="tabTo('t3');return false">scan</a>, and the <a class="jump" href="#" onclick="tabTo('t4');return false">agent itself</a>, followed by a <a class="jump" href="#" onclick="tabTo('t5');return false">live demo</a>.</p>
 </div>
 
 <div id="t2" class="tab">
