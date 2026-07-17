@@ -5,9 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Geometric Uncertainty</title>
 <meta name="description" content="Watching a language model agree — or fail to agree — with itself. After arXiv:2509.13813.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
     --paper: #FFFFFF;
@@ -18,9 +15,9 @@
     --green: #2F7A4D;
     --red: #B3432B;
     --neutral: #808080;
-    --serif: "Inter", "Helvetica Neue", Arial, sans-serif;
-    --sans: "Inter", "Helvetica Neue", Arial, sans-serif;
-    --mono: "IBM Plex Mono", ui-monospace, monospace;
+    --serif: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, Consolas, monospace;
   }
   * { box-sizing: border-box; margin: 0; }
   html, body { height: 100%; }
@@ -45,11 +42,14 @@
   header { display: flex; align-items: baseline; justify-content: space-between; }
   h1 {
     font-family: var(--sans);
-    font-weight: 600;
-    font-size: 21px;
+    font-weight: 650;
+    font-size: 24px;
     letter-spacing: -0.01em;
     white-space: nowrap;
   }
+  .crumb { font: 11px var(--mono); letter-spacing: 0.08em; margin-bottom: 14px; }
+  .crumb a { color: var(--faint); text-decoration: none; }
+  .crumb a:hover { color: var(--ink); }
   #meta { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
   #meta a { color: inherit; }
   #intro {
@@ -219,6 +219,7 @@
 <div id="frame">
   <header>
     <div>
+      <div class="crumb"><a href="../">&larr; DEMOS</a></div>
       <h1>Geometric Uncertainty for Outlier Detection</h1>
       <div id="intro">
         <p>Ask a model the same question thirty times, and look at the shape its answers make in semantic space.</p>
