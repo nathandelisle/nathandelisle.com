@@ -238,7 +238,7 @@
 <h2>Recorded runs</h2>
 <p>This page hosts recorded runs of the Databricks production system. Each question was run three times.</p>
 <p>The agent itself lives at <code>Opinion Project/Agents/Atlas - Unstructured Agent</code>. The notebook <code>eval_on_test_set</code> runs the evaluation on the test set; <code>evaluate</code> takes arbitrary questions.</p>
-<p><b>Result: 41 correct, 1 in-between, 0 incorrect.</b></p>
+<p>Result: 41 correct, 1 in-between, 0 incorrect.</p>
 <div class="rr">
 <div class="rrlist" id="rrlist"></div>
 <div class="rrdetail" id="rrdetail"></div>
@@ -560,11 +560,7 @@ function rrDetail(){
   var h='<div class="rrq">'+esc(q.q)+'</div>';
   h+='<div class="gtline"><b>A correct answer contains:</b> '+esc(q.gt)+'</div>';
   h+='<div class="runtabs">';
-  for(var i=0;i<3;i++){
-    var ri=runs&&runs[i];
-    h+='<button class="'+(i===curRun?'on':'')+'" onclick="rrRun('+i+')">Run '+(i+1)
-      +(ri?' <span class="vic '+vClass(ri.verdict)+'">'+vIcon(ri.verdict)+'</span>':'')+'</button>';
-  }
+  for(var i=0;i<3;i++)h+='<button class="'+(i===curRun?'on':'')+'" onclick="rrRun('+i+')">Run '+(i+1)+'</button>';
   var r=runs&&runs[curRun];
   if(r&&r.verdict)h+='<span class="badge '+vClass(r.verdict)+'">'+vIcon(r.verdict)+' '+esc(vLabel(r.verdict))+'</span>';
   h+='</div>';
