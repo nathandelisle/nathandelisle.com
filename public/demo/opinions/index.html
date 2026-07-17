@@ -31,6 +31,17 @@
  .jump{color:#1a6faf;text-decoration:none}
  .jump:hover{text-decoration:underline}
  .dgcap{font-size:12.5px;color:#777}
+ .v3d{position:relative;margin:14px 0;border:1px solid #e2e2e2;border-radius:4px;background:#fbfbfb;overflow:hidden}
+ .v3d canvas{display:block;cursor:grab}
+ .v3d canvas:active{cursor:grabbing}
+ .v3dtip{position:absolute;pointer-events:none;background:#111;color:#fff;font:12px/1.45 system-ui;padding:6px 9px;border-radius:4px;max-width:300px;display:none;z-index:5}
+ .v3dtip small{color:#bbb}
+ .v3dleg{position:absolute;top:8px;left:10px;display:flex;gap:12px;flex-wrap:wrap;font:12px system-ui;color:#444;background:rgba(251,251,251,.85);padding:3px 7px;border-radius:4px}
+ .v3dleg span{display:inline-flex;align-items:center;gap:5px}
+ .v3dleg i{width:9px;height:9px;border-radius:50%;display:inline-block}
+ .v3dleg i.ring{background:#fff;border:2px solid #111;width:6px;height:6px}
+ .v3dcap{position:absolute;right:10px;bottom:7px;font:11px ui-monospace,Consolas,monospace;color:#999}
+ .v3dload{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:12.5px ui-monospace,Consolas,monospace;color:#777}
  .dg g rect{transition:stroke-width .12s}
  .dg g.rt{cursor:pointer}
  .dg g.rt:hover rect{stroke-width:2.4}
@@ -136,32 +147,32 @@
 
 <div id="t2" class="tab">
 <h2>Embeddings</h2>
-<p>Every document is cut into passages of roughly 600 tokens, and every passage gets a vector. That one pass yields two layers: passage vectors for finding <em>where</em> something is said, and document vectors — built from each document's passages — for finding <em>which</em> documents resemble each other. The two layers answer different questions and power different tools.</p>
+<p>The corpus is 583 documents. Questions can be phrased using words the documents never use, so exact-matching is insufficient. This is an ideal use case for embeddings.</p>
+<p>An embedding maps text such that the distance between semantically similar pieces of text is minimized. In this case, embeddings are useful because fairness opinions are templated; what matters is which family an opinion belongs to and where it deviates, which are both naturally geometric questions.</p>
 
 <h3>Document level — "which opinions are like this one?"</h3>
-<p>One point per document. This is the layer for precedent questions ("what's the precedent set for a conflicts-committee buy-in?") and for outliers ("which letters are worded least like the rest?") — questions that are natively about whole opinions, where working from passages would just mean re-aggregating back up to documents.</p>
-<p>Two complementary similarity signals are averaged. A lexical signal scores documents by their distinctive vocabulary. A semantic signal (neural embeddings pooled from passage vectors) captures meaning — but pooled vectors share a large "this is a fairness opinion" component that makes every document look alike, so the shared directions are removed before use. Measured on a 143-query benchmark over six known document families, the hybrid beats either signal alone (macro precision@5 0.67 vs 0.65 semantic-only, 0.55 lexical-only).</p>
-<div class="ph">[ visual to come — the 3D atlas: 583 documents, clustered, with pinned landmark deals ]</div>
+<p>This is the higher-level embedding: naively, we embed each opinion as a vector. This is useful for precedent search, and a general sanity check; a deal's letter, description, and supplement should be close to each other across volumes (they are).</p>
+<p>My initial approach, which was a failure: simply embed each document's raw text in one call. This failed because the shared boilerplate language dominates the average (coarseness problem) so everything resembles everything, and artifacts/confounds leak in.</p>
+<p>The perfected approach blends two channels. The first, stated simply, is: strip the header (as it appears in each opinion); count every word and word-pair; down-weight terms that appear in every opinion (i.e. "fairness," "Evercore") and up-weight terms that don't ("EBITDAX," "exchange ratio"); then compress the counts down to a short vector. Two opinions are similar when their arrows point the same way.</p>
+<p>The second channel is neural embeddings, which had to be corrected before they were usable: the raw neural vectors did worse than the word counts (below chance on one family), because every vector is ~84% the same direction — "this is a fairness opinion." Subtracting that shared direction, and the top two components after it, fixed the channel. The blend of the two beats either alone: precision 0.67, vs 0.65 neural-only and 0.55 counts-only, measured over 143 queries.</p>
+<p>A simple piece of evidence that this pipeline works: the 8point3 deal's nearest neighbors are the MLP conflicts-committee precedent set [Blueknight (.59), DCP Midstream (.59), PetroLogistics (.56), TransMontaigne (.55)] which is what we should expect.</p>
+<div class="v3d" id="vdoc" style="height:400px"><div class="v3dload">loading 583 documents&hellip;</div></div>
 
 <h3>Chunk level — "where does it say that?"</h3>
-<p>Passages are cut at natural paragraph boundaries with their section headings attached, and the 1,067 tables in the filings are kept as their own typed chunks — a DCF assumptions table should be findable <em>as a table</em>. 9,588 chunks in total, each carrying deal, document kind, year, and page, so every search hit is citable to the page.</p>
-<p>Search is hybrid: the meaning vector finds paraphrases ("terminal value assumptions" finds the perpetuity-growth discussion), while a keyword channel protects exact tokens — tickers, "8point3", dollar amounts — that meaning vectors blur. Near-identical boilerplate shared across deals is down-weighted so it doesn't crowd out deal-specific passages, but stays reachable when the question is about the standard language itself.</p>
-<p>On eval questions with a known ground-truth passage, the right passage lands in the top five 9 times out of 9, and at rank one in 7 of 9.</p>
-<div class="ph">[ visual to come — a retrieval walkthrough: query &rarr; top passages with page citations ]</div>
+<p>This is the lower-level embedding: each passage is embedded as a vector. There are 9,588 vectors total (8,521 text passages and 1,067 tables). This is the layer the agent directly reads from. I attached the metadata to each vector [every hit carries (deal, document, page)] so citations are very native and natural for the model to give.</p>
+<p>Initial approach, naive failures: using doc vectors for specific questions (i.e., the terminal-value paragraph is only ~0.3% of its full document, so using document-level vectors matches "is this a pharma opinion," not the paragraph in question) and fixed-width chunking (which leads to cut/orphans mid-sentence/mid-table.)</p>
+<p>The corrected method: cut each document into pieces of about a page, breaking only at paragraph or sentence ends; tag each piece with its deal, document, and page; keep tables as their own pieces; prepend each piece's section heading so a table of numbers still knows it belongs to the DCF. Embed every piece; embed the question the same way. Then, return the pieces whose arrows point most nearly the same direction, each with deal, document, page.</p>
+<div class="v3d" id="vchunk" style="height:440px"><div class="v3dload">loading 9,588 passages&hellip;</div></div>
 
-<p>These layers power three of the agent's tools: <code>find_similar</code> (precedents and outliers), <code>search_passages</code> (passage retrieval with citations), and <code>read_document</code> (exact pages, once search has located the spot).</p>
+<p>The embeddings power two of the agent's tools: <code>find_similar</code> (precedents and outliers) and <code>search_passages</code> (passage retrieval with citations).</p>
 </div>
 
 <div id="t3" class="tab">
-<h2>Exhaustive scan</h2>
-<p>Search has a structural limit: it returns the best few matches, and can never promise there wasn't an eleventh document it missed. Some questions are exactly about completeness — "the average discount rate across healthcare deals since 2024" is wrong if even one matching document is skipped. Those questions get their own tool.</p>
-<p><code>scan_documents</code> runs in two steps. A deterministic filter picks the universe (year, document kind, deal — exact metadata, no model involved). Then every document in the universe is read, in one of two modes:</p>
-<ul>
-<li><b>regex</b> — free and exact: pattern counts per document, with sample snippets. Example: counting opinion letters addressed to a conflicts committee by scanning each letter's addressee block.</li>
-<li><b>extract</b> — a cheap model (claude-haiku-4.5) reads each document and returns exactly the requested JSON fields, including a relevance flag so loosely-filtered documents are rejected by <em>reading them</em>, not by guessing from names. Roughly $0.01 per document.</li>
-</ul>
-<p>Aggregation is never done by a model: numeric fields get min/max/mean/median computed in code, and any further arithmetic goes through <code>calc</code>, a guarded calculator. The orchestrator is forbidden from doing mental math over lists of numbers.</p>
-<p>End to end, "what discount rates did healthcare DCF analyses use in the past two years?" becomes: filter to opinion descriptions from 2024 on &rarr; the reader model flags which are healthcare and extracts each discount-rate range &rarr; statistics computed in code &rarr; a range, a mean, and a per-deal table with citations.</p>
+<h2>Scan</h2>
+<p>Embeddings work well for [X], but some questions are aggregates: "what is the average discount rate across our healthcare deals from the past two years." In this case, the answer does not exist in any single document, but is computed across many. Retrieval is not the right tool in this case. If one relevant document is not retrieved, the average is wrong, and there's essentially no way to tell. The only way to guarantee an aggregate is to read every document that could matter, which is why the scan tool exists.</p>
+<p>The scan procedure works as follows: filter the corpus by metadata (year, document type, deal, adviser) to get a universe of documents. Then, for every document in the universe, either count a pattern (for simple questions), or have a small, cheap model read the document and pull out one value (about $0.01 per document). The extracted values go into code for the arithmetic (min, max, mean).</p>
+<p>There are two modes. Pattern mode, e.g. "how many opinion letters are addressed to a conflicts committee", is answered by searching the opening block of all 282 letters for the phrase (34 of them are). Extract mode is for values that are more nuanced, and need reading: i.e. for the question "Discount rate", the reader model goes through each recent description, returns the rate or "not stated," and the statistics are computed over the returned rows.</p>
+<p>An early failure, which I think is worth describing: the corpus metadata has no sector field, and inferring sector from company names does not work. On an early run, picking the healthcare deals by name missed Augmedix (a 2024 healthcare deal with a name that doesn't sound like one). The fix I decided on is to filter loosely and let the reader model decide relevance for each document. An over-included document costs less than a cent, and the agent can easily ignore it.</p>
 <div class="ph">[ visual to come — the scan pipeline: filter &rarr; per-document extraction &rarr; aggregate ]</div>
 </div>
 
@@ -235,6 +246,124 @@ function tabTo(id){
   document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('on',t.id===id);});
   document.querySelectorAll('nav button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-t')===id);});
   window.scrollTo(0,0);
+  if(id==='t2'){if(!EMB.started)embInit();else if(EMB.build){EMB.build();EMB.build=null;}}
+}
+
+/* ---- 3D embedding panels (data precomputed from the production index) ---- */
+var EMB={started:false,build:null};
+function embInit(){
+  EMB.started=true;
+  fetch('embed_points.json').then(function(r){
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return r.json();
+  }).then(function(d){
+    var b=function(){
+      var KC=['#534AB7','#0F6E56','#993C1D'];
+      var doc=d.doc,ch=d.chunk;
+      view3d(document.getElementById('vdoc'),{
+        n:doc.deal.length,xyz:doc.xyz,r:4,alpha:0.9,
+        color:function(i){return KC[doc.kind[i]];},
+        hl:doc.hl,
+        legend:[['#534AB7','letters'],['#0F6E56','descriptions'],['#993C1D','supplements'],['ring','8point3 + neighbors']],
+        cap:'583 documents · drag to rotate',
+        tip:function(i){return '<b>'+esc(d.deals[doc.deal[i]])+'</b><br><small>'
+          +doc.kinds[doc.kind[i]]+(doc.year[i]?' · '+doc.year[i]:'')+(doc.ev[i]?' · Evercore':'')+'</small>';}
+      });
+      view3d(document.getElementById('vchunk'),{
+        n:ch.deal.length,xyz:ch.xyz,r:1.7,alpha:0.62,
+        color:function(i){return ch.table[i]?'#993C1D':'#0F6E56';},
+        legend:[['#0F6E56','text passages'],['#993C1D','tables']],
+        cap:'9,588 passages · drag to rotate',
+        tip:function(i){return '<b>'+esc(d.deals[ch.deal[i]])+'</b><br><small>'
+          +d.doc.kinds[ch.kind[i]]+' · p.'+ch.page[i]+(ch.table[i]?' · table':'')+'</small><br>'
+          +esc(ch.snip[i])+'&hellip;';}
+      });
+    };
+    if(document.getElementById('t2').classList.contains('on'))b();
+    else EMB.build=b;
+  }).catch(function(e){
+    document.querySelectorAll('.v3dload').forEach(function(el){el.textContent='could not load point data ('+esc(e.message)+')';});
+  });
+}
+function view3d(host,o){
+  host.innerHTML='';
+  var W=host.clientWidth,H=host.clientHeight,dpr=window.devicePixelRatio||1;
+  var cv=document.createElement('canvas');
+  cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);
+  cv.style.width=W+'px';cv.style.height=H+'px';
+  host.appendChild(cv);
+  var ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
+  var tip=document.createElement('div');tip.className='v3dtip';host.appendChild(tip);
+  var leg=document.createElement('div');leg.className='v3dleg';
+  o.legend.forEach(function(L){
+    leg.innerHTML+='<span><i '+(L[0]==='ring'?'class="ring"':'style="background:'+L[0]+'"')+'></i>'+L[1]+'</span>';});
+  host.appendChild(leg);
+  var cap=document.createElement('div');cap.className='v3dcap';cap.textContent=o.cap;host.appendChild(cap);
+  var n=o.n,P=o.xyz,yaw=0.65,pitch=0.32,auto=true,hov=-1;
+  var SX=new Float32Array(n),SY=new Float32Array(n),SS=new Float32Array(n),Z=new Float32Array(n);
+  var ord=new Uint32Array(n);
+  var F=560,zoom=Math.min(W,H)/300;
+  var cols=new Array(n);for(var i=0;i<n;i++)cols[i]=o.color(i);
+  function proj(){
+    var cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
+    for(var i=0;i<n;i++){
+      var x=P[3*i],y=P[3*i+1],z=P[3*i+2];
+      var x1=cy*x+sy*z,z1=-sy*x+cy*z;
+      var y1=cp*y-sp*z1,z2=sp*y+cp*z1;
+      var s=F/(F+z2);
+      SX[i]=W/2+x1*s*zoom;SY[i]=H/2-y1*s*zoom;SS[i]=s;Z[i]=z2;ord[i]=i;
+    }
+    ord.sort(function(a,b){return Z[b]-Z[a];});
+  }
+  function draw(){
+    proj();
+    ctx.clearRect(0,0,W,H);
+    ctx.globalAlpha=o.alpha;
+    for(var k=0;k<n;k++){
+      var i=ord[k],r=o.r*SS[i];
+      ctx.fillStyle=cols[i];
+      if(o.r>=3){ctx.beginPath();ctx.arc(SX[i],SY[i],r,0,6.2832);ctx.fill();}
+      else ctx.fillRect(SX[i]-r,SY[i]-r,2*r,2*r);
+    }
+    ctx.globalAlpha=1;
+    if(o.hl){
+      ctx.lineWidth=1.8;ctx.strokeStyle='#111';
+      o.hl.nb.forEach(function(i){ctx.beginPath();ctx.arc(SX[i],SY[i],o.r*SS[i]+3.5,0,6.2832);ctx.stroke();});
+      var q=o.hl.q;
+      ctx.fillStyle='#111';ctx.beginPath();ctx.arc(SX[q],SY[q],o.r*SS[q]+1.5,0,6.2832);ctx.fill();
+      ctx.beginPath();ctx.arc(SX[q],SY[q],o.r*SS[q]+5.5,0,6.2832);ctx.stroke();
+    }
+    if(hov>=0){
+      ctx.lineWidth=1.5;ctx.strokeStyle='#111';
+      ctx.beginPath();ctx.arc(SX[hov],SY[hov],o.r*SS[hov]+3,0,6.2832);ctx.stroke();
+    }
+  }
+  function loop(){if(auto){yaw+=0.0032;draw();}requestAnimationFrame(loop);}
+  var drag=false,lx=0,ly=0;
+  cv.addEventListener('pointerdown',function(e){
+    drag=true;auto=false;lx=e.clientX;ly=e.clientY;cv.setPointerCapture(e.pointerId);});
+  cv.addEventListener('pointermove',function(e){
+    if(drag){
+      yaw+=(e.clientX-lx)*0.008;
+      pitch=Math.max(-1.45,Math.min(1.45,pitch+(e.clientY-ly)*0.008));
+      lx=e.clientX;ly=e.clientY;
+      if(hov>=0){hov=-1;tip.style.display='none';}
+      draw();return;
+    }
+    var rect=cv.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;
+    var best=-1,bd=90;
+    for(var i=0;i<n;i++){var dx=SX[i]-mx,dy=SY[i]-my,d2=dx*dx+dy*dy;if(d2<bd){bd=d2;best=i;}}
+    if(best!==hov){hov=best;draw();}
+    if(best>=0){
+      tip.innerHTML=o.tip(best);tip.style.display='block';
+      var tx=Math.max(6,Math.min(mx+14,W-310)),ty=my+16;
+      if(ty>H-70)ty=my-tip.offsetHeight-12;
+      tip.style.left=tx+'px';tip.style.top=ty+'px';
+    }else tip.style.display='none';
+  });
+  cv.addEventListener('pointerup',function(){drag=false;});
+  cv.addEventListener('pointerleave',function(){if(hov>=0){hov=-1;tip.style.display='none';draw();}});
+  draw();loop();
 }
 
 /* ---- live demo ---- */
