@@ -79,7 +79,7 @@ function App() {
           <h1 style={styles.name}>Nathan Delisle</h1>
           <div style={styles.bio}>
             <p style={styles.bioP}>
-              I am a senior at the University of Chicago studying Computer Science and Statistics.
+              I am a senior at the University of Chicago studying Mathematics and Statistics.
             </p>
             <p style={styles.bioP}>
               I am currently in the{' '}
